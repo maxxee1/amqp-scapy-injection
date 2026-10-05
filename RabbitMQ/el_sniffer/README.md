@@ -1,64 +1,42 @@
-# 🧃🐇 AMQP Packet Chaos con Scapy (SOLO FINES EDUCATIVOS)
+# 🧃🐇 el_sniffer — MITM AMQP con Scapy (SOLO FINES EDUCATIVOS)
 
-🚨 **Disclaimer:**  
-Este proyecto es **SOLO** con fines educativos para entender cómo interceptar/modificar/inyectar tráfico AMQP usando **Scapy**. NO lo uses en redes ajenas. Sé decente: solo en entorno de laboratorio.
+🚨 **Disclaimer:** entorno de laboratorio aislado. NO usar en redes ajenas.
 
-## 📂 Estructura
+Este contenedor es el **atacante**. Se mete en medio del tráfico AMQP entre el
+productor (`el_enviador`) y el broker (`rabbit`) usando **ARP spoofing**, y
+modifica el contenido de los mensajes en tránsito con **Scapy**.
 
-```bash
-├── docker-compose.yml
-├── el_enviador/
-│   ├── Dockerfile
-│   ├── Insaneador.py
-├── el_espameado/
-│   ├── Dockerfile
-│   ├── Insaneado.py
-├── el_sniffer/
-│   ├── Dockerfile
-│   ├── modificador.py
+## Qué hace `mitm.py`
 
-```
+1. Resuelve IP/MAC del productor y del broker.
+2. Envenena sus cachés ARP (ARP spoofing) para situarse en medio.
+3. Intercepta los frames AMQP (puerto 5672) y reemplaza marcadores en el
+   payload **conservando la longitud** (así no rompe el framing TCP/AMQP):
+   - `STATUS=NORMAL` → `STATUS=HACKED`
+   - `note=legit` → `note=pwned`
+4. Reenvía el paquete modificado a su destino real.
+5. Al salir, **restaura** las tablas ARP de las víctimas.
 
-## 🚀 Qué hace
-- Levanta RabbitMQ con interfaz de gestión.
-- `el_enviador` envía mensajes AMQP.
-- `el_espameado` los recibe.
-- `el_sniffer` intercepta paquetes AMQP (**puerto 5672**) con **Scapy**.
-- Modifica payload (fuzzing básico).
-- Reinyecta los paquetes alterados para ver si RabbitMQ explota o filtra.
+## Modos (`MITM_MODE`)
 
-## 🧃 modificador.py
-from scapy.all import *
+- **`relay`** (por defecto): reenvío L2 en user-space con Scapy. Portable, no
+  necesita módulos de kernel ni iptables. Funciona en WSL2 y Linux.
+- **`nfqueue`**: `iptables -j NFQUEUE` + NetfilterQueue (técnica inline canónica).
+  Requiere un kernel host con `nfnetlink_queue` (Kali/VM real, no siempre en WSL2).
 
-print("🧃 Sniffer MITM activo...")
+## Configuración (vía variables de entorno, ver `.env`)
 
-from scapy.all import *
+| Variable        | Default        | Descripción                          |
+|-----------------|----------------|--------------------------------------|
+| `MITM_TARGET_A` | `el_enviador`  | Víctima 1 (productor)                |
+| `MITM_TARGET_B` | `rabbit`       | Víctima 2 (broker)                   |
+| `MITM_MODE`     | `relay`        | `relay` o `nfqueue`                  |
+| `AMQP_PORT`     | `5672`         | Puerto AMQP a interceptar            |
+| `MITM_IFACE`    | `eth0`         | Interfaz de red del contenedor       |
 
-IFACE = "eth0"
-FILTER = "tcp port 5672"
+## Privilegios
 
-def fuzz(packet):
-    if packet.haslayer(Raw):
-        print(f"👀 ORIGINAL: {packet.summary()}")
-        # Mini fuzz: reemplaza texto, o corrompe bits, tu delirio
-        if b"hello" in packet[Raw].load:
-            packet[Raw].load = packet[Raw].load.replace(b"hello", b"VIRUS!!!")
-        send(packet)
-        print(f"💥 MODIFICADO: {packet.summary()}")
+Necesita las capacidades `NET_ADMIN` y `NET_RAW` (definidas en
+`docker-compose.yml`). **No** usa `privileged: true` (mínimo privilegio).
 
-print(f"🔥 Sniffing en {IFACE} filtrando {FILTER}")
-sniff(iface=IFACE, filter=FILTER, prn=fuzz)
-
-
-## 🧃 Dockerfile el_sniffer
-FROM python:3.11-slim
-
-RUN apt-get update && apt-get install -y tcpdump iproute2 iputils-ping && pip install scapy
-
-WORKDIR /app
-COPY modificador.py .
-CMD ["python", "modificador.py"]
-
-## 🧃 Disclaimer final
-**SOLO LABORATORIO. SOLO PRUEBAS. NO A LAS ILEGALIDADES EXPLOSIVAS.**  
-No hackees a la tía que vende empanadas. 🫠🐇💥
+**SOLO LABORATORIO. SOLO PRUEBAS. NO A LAS ILEGALIDADES. 🫠🐇**

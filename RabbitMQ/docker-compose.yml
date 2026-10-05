@@ -1,44 +1,93 @@
-version: '3.9'
+# Laboratorio AMQP MITM — ataque y defensa (SOLO USO EDUCATIVO / LABORATORIO AISLADO)
+#
+# Levantar:   docker compose up --build
+# Apagar:     docker compose down
+# Limpiar:    docker compose down -v --rmi all
+#
+# Las credenciales y parámetros vienen de .env (ver .env.example).
 
 services:
+  # ---------------------------------------------------------------
+  #  Broker RabbitMQ (la "víctima" central)
+  # ---------------------------------------------------------------
   rabbit:
     image: rabbitmq:4-management
     container_name: amqp
+    hostname: rabbit
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # UI de gestión (http://localhost:15672)
     environment:
-      RABBITMQ_DEFAULT_USER: MAXI
-      RABBITMQ_DEFAULT_PASS: MAXI
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     networks:
       - red_docker
 
+  # ---------------------------------------------------------------
+  #  Productor: publica mensajes AMQP en la cola
+  # ---------------------------------------------------------------
   el_enviador:
     build: ./el_enviador
     container_name: insaneador
     depends_on:
-      - rabbit
+      rabbit:
+        condition: service_healthy
+    environment:
+      AMQP_HOST: ${AMQP_HOST}
+      AMQP_PORT: ${AMQP_PORT}
+      AMQP_QUEUE: ${AMQP_QUEUE}
+      AMQP_USER: ${RABBITMQ_USER}
+      AMQP_PASS: ${RABBITMQ_PASS}
     networks:
       - red_docker
+    restart: unless-stopped
 
+  # ---------------------------------------------------------------
+  #  Consumidor: recibe los mensajes (y evidencia la manipulación)
+  # ---------------------------------------------------------------
   el_espameado:
     build: ./el_espameado
     container_name: insaneado
     depends_on:
-      - rabbit
+      rabbit:
+        condition: service_healthy
+    environment:
+      AMQP_HOST: ${AMQP_HOST}
+      AMQP_PORT: ${AMQP_PORT}
+      AMQP_QUEUE: ${AMQP_QUEUE}
+      AMQP_USER: ${RABBITMQ_USER}
+      AMQP_PASS: ${RABBITMQ_PASS}
     networks:
       - red_docker
+    restart: unless-stopped
 
+  # ---------------------------------------------------------------
+  #  Atacante MITM: ARP spoofing + intercepta/modifica frames AMQP
+  #  Principio de mínimo privilegio: solo las capacidades de red
+  #  necesarias (NET_ADMIN, NET_RAW), sin `privileged: true`.
+  # ---------------------------------------------------------------
   el_sniffer:
     build: ./el_sniffer
     container_name: sniffermitm
     depends_on:
-      - rabbit
+      rabbit:
+        condition: service_healthy
+    environment:
+      MITM_TARGET_A: ${MITM_TARGET_A}
+      MITM_TARGET_B: ${MITM_TARGET_B}
+      MITM_MODE: ${MITM_MODE}
+      AMQP_PORT: ${AMQP_PORT}
+    cap_add:
+      - NET_ADMIN   # ARP/iptables/ip_forward
+      - NET_RAW     # sockets raw (scapy)
     networks:
       - red_docker
-    cap_add:
-      - NET_ADMIN
-    privileged: true
+    restart: unless-stopped
 
 networks:
   red_docker:

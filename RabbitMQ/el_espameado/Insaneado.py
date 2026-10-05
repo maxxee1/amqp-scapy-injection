@@ -1,33 +1,62 @@
+"""
+Consumidor AMQP — recibe los mensajes de la cola.
+
+Si el MITM manipuló el tráfico, aquí se nota: el cuerpo recibido NO coincide
+con lo que publicó el productor. Marcamos como [ALERTA] los mensajes que
+contienen la firma del atacante (STATUS=HACKED o note=pwned).
+"""
+import os
+
 import pika
-import time
 
-print("🐇 Insaneado despertando...")
+HOST = os.environ.get("AMQP_HOST", "rabbit")
+PORT = int(os.environ.get("AMQP_PORT", "5672"))
+QUEUE = os.environ.get("AMQP_QUEUE", "insane_queue")
+USER = os.environ.get("AMQP_USER", "guest")
+PASS = os.environ.get("AMQP_PASS", "guest")
 
-# Intentos infinitos
-while True:
-    try:
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host='rabbit',
-                port=5672,
-                credentials=pika.PlainCredentials('MAXI', 'MAXI')
-            )
-        )
-        print("🐇 Conejo encontrado, escuchando 📥")
-        break
-    except pika.exceptions.AMQPConnectionError:
-        print("🐇 Conejo dormido, retry en 5s 🫠")
-        time.sleep(5)
+# Firmas que deja el atacante MITM (ver el_sniffer/mitm.py)
+FIRMAS_ATAQUE = ("STATUS=HACKED", "note=pwned")
 
-channel = connection.channel()
-channel.queue_declare(queue='insane_queue')
+print("🐇 Insaneado (consumidor) despertando...", flush=True)
+
+
+def conectar():
+    params = pika.ConnectionParameters(
+        host=HOST,
+        port=PORT,
+        credentials=pika.PlainCredentials(USER, PASS),
+        heartbeat=30,
+    )
+    while True:
+        try:
+            conn = pika.BlockingConnection(params)
+            print("🐇 Conejo encontrado, escuchando 📥", flush=True)
+            return conn
+        except pika.exceptions.AMQPConnectionError:
+            print("🐇 Conejo dormido, reintento en 5s 🫠", flush=True)
+            import time
+            time.sleep(5)
+
 
 def callback(ch, method, properties, body):
-    print(f" [x] Recibido: {body.decode()} 🫶🐇😭")
+    texto = body.decode(errors="replace")
+    if any(firma in texto for firma in FIRMAS_ATAQUE):
+        print(f" [!] ALERTA — mensaje manipulado: {texto} 🚨", flush=True)
+    else:
+        print(f" [<] Recibido: {texto} 🫶🐇", flush=True)
 
-channel.basic_consume(queue='insane_queue',
-                      on_message_callback=callback,
-                      auto_ack=True)
 
-print(' [*] Esperando locuras... Ctrl+C pa soltar todo 🧃')
-channel.start_consuming()
+def main():
+    connection = conectar()
+    channel = connection.channel()
+    channel.queue_declare(queue=QUEUE, durable=True)
+    channel.basic_consume(
+        queue=QUEUE, on_message_callback=callback, auto_ack=True
+    )
+    print(" [*] Esperando mensajes. Ctrl+C para salir 🧃", flush=True)
+    channel.start_consuming()
+
+
+if __name__ == "__main__":
+    main()
