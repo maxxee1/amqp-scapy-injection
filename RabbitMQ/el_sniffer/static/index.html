@@ -97,6 +97,15 @@
   .f.changed{background:var(--red-bg);color:var(--red);font-weight:700}
   .same{color:var(--gray-600);font-size:12px}
   .empty{color:var(--gray-700);font-size:13.5px;text-align:center;padding:28px 0}
+  .feed-foot{display:flex;align-items:center;justify-content:space-between;margin-top:18px;flex-wrap:wrap;gap:12px}
+  .pager{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .pg{min-width:34px;height:34px;border:1px solid var(--line);background:#fff;color:var(--gray-700);
+      border-radius:10px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
+  .pg:hover:not(:disabled):not(.gap){border-color:var(--brand);color:var(--brand)}
+  .pg.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .pg.arrow{font-size:17px;line-height:1}
+  .pg:disabled{opacity:.4;cursor:default}
+  .pg.gap{border:none;background:transparent;cursor:default;min-width:20px}
 
   .overlay{position:fixed;inset:0;background:rgba(27,37,75,.45);display:none;
            align-items:center;justify-content:center;z-index:50;padding:20px}
@@ -184,6 +193,10 @@
         <thead><tr><th style="width:80px">Hora</th><th>Enviado (productor)</th><th>Recibe el consumidor</th></tr></thead>
         <tbody id="feed"><tr><td colspan="3" class="empty">Prende el MITM para empezar a ver tráfico…</td></tr></tbody>
       </table>
+      <div class="feed-foot">
+        <div class="pager" id="pager"></div>
+        <button class="btn btn-ghost" id="see-all">Ver todo</button>
+      </div>
     </div>
   </div>
 
@@ -290,26 +303,73 @@ function chips(fields,cmp){
     return `<span class="f${changed?' changed':''}">${k}=${v}</span>`;
   }).join('');
 }
-function renderFeed(evts){
-  const feed=$('feed');
-  if(!evts.length)return;
-  feed.innerHTML=evts.map(e=>{
-    const o=parseMsg(e.original);
-    const sent=`<div class="msgid">${o.id}</div><div class="fields">${chips(o.fields,null)}</div>`;
-    let recv;
-    if(e.tampered){
-      const m=parseMsg(e.modified);
-      recv=`<div class="msgid">${m.id}</div><div class="fields">${chips(m.fields,o.fields)}</div>`;
-    }else{
-      recv=`<span class="same">idéntico (sin edición)</span>`;
-    }
-    return `<tr><td class="time">${e.ts}</td><td>${sent}</td><td>${recv}</td></tr>`;
-  }).join('');
+let allEvents=[], page=1, showAll=false;
+const PAGE=15;
+
+function rowHtml(e){
+  const o=parseMsg(e.original);
+  const sent=`<div class="msgid">${o.id}</div><div class="fields">${chips(o.fields,null)}</div>`;
+  let recv;
+  if(e.tampered){
+    const m=parseMsg(e.modified);
+    recv=`<div class="msgid">${m.id}</div><div class="fields">${chips(m.fields,o.fields)}</div>`;
+  }else recv=`<span class="same">idéntico (sin edición)</span>`;
+  return `<tr><td class="time">${e.ts}</td><td>${sent}</td><td>${recv}</td></tr>`;
 }
+
+// Ventana de páginas: hasta 4 números, con … y extremos (ej. 1 2 … 7)
+function pageWindow(total,cur){
+  if(total<=4) return Array.from({length:total},(_,i)=>i+1);
+  const out=[1];
+  if(cur>3) out.push('…');
+  for(let p=Math.max(2,cur-1);p<=Math.min(total-1,cur+1);p++) out.push(p);
+  if(cur<total-2) out.push('…');
+  out.push(total);
+  return out;
+}
+
+function renderPager(total){
+  const pager=$('pager');
+  if(showAll||total<=1){pager.innerHTML='';return;}
+  let h=`<button class="pg arrow" data-go="prev"${page===1?' disabled':''}>‹</button>`;
+  pageWindow(total,page).forEach(p=>{
+    h+=(p==='…')?`<span class="pg gap">…</span>`
+      :`<button class="pg${p===page?' active':''}" data-go="${p}">${p}</button>`;
+  });
+  h+=`<button class="pg arrow" data-go="next"${page===total?' disabled':''}>›</button>`;
+  pager.innerHTML=h;
+}
+
+function renderFeed(){
+  const feed=$('feed');
+  if(!allEvents.length){
+    feed.innerHTML='<tr><td colspan="3" class="empty">Prende el MITM para empezar a ver tráfico…</td></tr>';
+    $('pager').innerHTML='';return;
+  }
+  if(showAll){feed.innerHTML=allEvents.map(rowHtml).join('');$('pager').innerHTML='';return;}
+  const total=Math.max(1,Math.ceil(allEvents.length/PAGE));
+  if(page>total)page=total;
+  feed.innerHTML=allEvents.slice((page-1)*PAGE,page*PAGE).map(rowHtml).join('');
+  renderPager(total);
+}
+
+$('pager').addEventListener('click',e=>{
+  const g=e.target.dataset.go;if(g===undefined)return;
+  const total=Math.max(1,Math.ceil(allEvents.length/PAGE));
+  if(g==='prev')page=Math.max(1,page-1);
+  else if(g==='next')page=Math.min(total,page+1);
+  else page=+g;
+  renderFeed();
+});
+$('see-all').onclick=()=>{
+  showAll=!showAll;
+  $('see-all').textContent=showAll?'Ver paginado':'Ver todo';
+  renderFeed();
+};
 
 function refresh(){
   api('/api/status').then(s=>applyStatus(s,!rulesLoaded)).catch(()=>{});
-  api('/api/events').then(renderFeed).catch(()=>{});
+  api('/api/events').then(e=>{allEvents=e;renderFeed();}).catch(()=>{});
 }
 refresh();setInterval(refresh,1000);
 </script>

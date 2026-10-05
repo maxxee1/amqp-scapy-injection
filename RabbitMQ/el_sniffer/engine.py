@@ -60,7 +60,7 @@ class MITMEngine:
             {"match": "note=legit", "replace": "note=pwned"},
         ]
         self.stats = {"seen": 0, "modified": 0}
-        self.events = deque(maxlen=100)
+        self.events = deque(maxlen=300)
 
         self.ip_a = self.mac_a = self.ip_b = self.mac_b = self.my_mac = None
         self._poison_stop = threading.Event()
@@ -167,9 +167,9 @@ class MITMEngine:
                             "b": f"{self.target_b} ({self.ip_b})"},
             }
 
-    def recent_events(self, n=50):
+    def recent_events(self):
         with self.lock:
-            return list(self.events)[:n]
+            return list(self.events)
 
     # ------------------------------------------------------------------
     # Sniff + relay (siempre corriendo; procesa solo si attack_on)

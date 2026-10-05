@@ -91,6 +91,9 @@ services:
       AMQP_PORT: ${AMQP_PORT}
     ports:
       - "8080:8080"   # panel de control -> http://localhost:8080
+    volumes:
+      # Sirve el panel desde el disco: editar static/ y recargar, sin rebuild.
+      - ./el_sniffer/static:/app/static:ro
     cap_add:
       - NET_ADMIN   # manipular ARP
       - NET_RAW     # sockets raw (scapy)
