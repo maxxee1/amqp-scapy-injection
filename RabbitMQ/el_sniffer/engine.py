@@ -67,6 +67,8 @@ class MITMEngine:
         self.events = deque(maxlen=300)
         self.captured = deque(maxlen=300)  # mensajes vistos en el cable (para el replay)
         self._cap_seq = 0
+        self.alerts = deque(maxlen=100)     # alertas de la defensa (DPI)
+        self.alert_counts = {"tamper": 0, "replay": 0, "arp": 0}
 
         self.ip_a = self.mac_a = self.ip_b = self.mac_b = self.my_mac = None
         self._poison_stop = threading.Event()
@@ -177,6 +179,20 @@ class MITMEngine:
     def recent_events(self):
         with self.lock:
             return list(self.events)
+
+    # ------------------------------------------------------------------
+    # Defensa (alertas que empuja el DPI)
+    # ------------------------------------------------------------------
+    def add_alert(self, atype, message):
+        with self.lock:
+            if atype in self.alert_counts:
+                self.alert_counts[atype] += 1
+            self.alerts.appendleft({"ts": time.strftime("%H:%M:%S"),
+                                    "type": atype, "message": message})
+
+    def defense(self):
+        with self.lock:
+            return {"alerts": list(self.alerts), "counts": dict(self.alert_counts)}
 
     # ------------------------------------------------------------------
     # Replay attack: reinyecta a la cola los mensajes capturados

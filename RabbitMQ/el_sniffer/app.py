@@ -85,6 +85,18 @@ def api_replay():
     return jsonify(engine.status())
 
 
+@app.post("/api/defense/alert")
+def api_defense_alert():
+    d = request.get_json(silent=True) or {}
+    engine.add_alert(d.get("type", "info"), d.get("message", ""))
+    return jsonify({"ok": True})
+
+
+@app.get("/api/defense")
+def api_defense():
+    return jsonify(engine.defense())
+
+
 def _shutdown(*_):
     engine.stop_attack()  # restaura las tablas ARP al cerrar
     sys.exit(0)

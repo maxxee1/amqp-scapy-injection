@@ -102,7 +102,31 @@ services:
       - NET_ADMIN   # manipular ARP
       - NET_RAW     # sockets raw (scapy)
     networks:
-      - red_docker
+      red_docker:
+        aliases:
+          - el_sniffer
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  #  Defensor DPI: observa (pasivo) el tráfico del broker y alerta.
+  #  Comparte el netns de 'rabbit' para VER todo el AMQP + ARP sin
+  #  necesidad de ARP spoofing. Empuja las alertas al panel.
+  # ---------------------------------------------------------------
+  el_defensor:
+    build: ./el_defensor
+    container_name: dpi
+    network_mode: "service:rabbit"   # comparte la red del broker
+    depends_on:
+      rabbit:
+        condition: service_healthy
+      el_sniffer:
+        condition: service_started
+    environment:
+      AMQP_PORT: ${AMQP_PORT}
+      DEFENSE_SINK: http://el_sniffer:8080/api/defense/alert
+    cap_add:
+      - NET_RAW     # sniff pasivo (scapy)
+      - NET_ADMIN
     restart: unless-stopped
 
 networks:

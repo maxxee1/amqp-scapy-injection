@@ -19,13 +19,32 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--navy);
-       padding:28px;max-width:1240px;margin:0 auto;-webkit-font-smoothing:antialiased}
+       padding:28px;max-width:1320px;margin:0 auto;-webkit-font-smoothing:antialiased}
 
-  .head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:24px}
-  .head h1{font-family:'Poppins',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em}
-  .head p{color:var(--gray-700);font-size:14px;margin-top:4px}
-  .brandchip{display:inline-flex;align-items:center;gap:8px;background:var(--brand-50);color:var(--brand);
-             font-weight:700;font-size:13px;padding:10px 16px;border-radius:999px}
+  /* layout + sidebar */
+  .layout{display:flex;gap:20px;align-items:flex-start}
+  .sidebar{width:236px;flex:none;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+           padding:22px;position:sticky;top:28px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Poppins',sans-serif;font-weight:700;
+         font-size:18px;color:var(--navy);margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .nav{display:flex;flex-direction:column;gap:6px}
+  .nav-item{display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;
+            color:var(--gray-700);font-family:inherit;font-weight:700;font-size:14px;padding:12px 14px;
+            border-radius:12px;cursor:pointer;transition:.2s;text-align:left}
+  .nav-item svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
+  .nav-item:hover{background:var(--bg);color:var(--navy)}
+  .nav-item.active{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(66,42,251,.25)}
+  .main{flex:1;min-width:0}
+  .topbar{margin-bottom:22px}
+  .topbar h1{font-family:'Poppins',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.02em}
+  .topbar p{color:var(--gray-700);font-size:14px;margin-top:4px}
+  .view[hidden]{display:none}
+  @media(max-width:860px){
+    .layout{flex-direction:column}
+    .sidebar{width:100%;position:static}
+    .nav{flex-direction:row;flex-wrap:wrap}
+    .nav-item{width:auto;flex:1 1 140px;justify-content:center}
+  }
 
   .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;
         font-size:12px;font-weight:700}
@@ -40,7 +59,7 @@
   .card h2{font-family:'Poppins',sans-serif;font-size:17px;font-weight:600;margin-bottom:6px}
   .card .desc{color:var(--gray-700);font-size:12.5px;margin-bottom:16px;line-height:1.5}
   .span2{grid-column:span 2}.span4{grid-column:span 4}
-  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.span2,.span4{grid-column:span 2}}
+  @media(max-width:1080px){.grid{grid-template-columns:repeat(2,1fr)}.span2,.span4{grid-column:span 2}}
   @media(max-width:560px){.grid{grid-template-columns:1fr}.span2,.span4{grid-column:span 1}}
 
   .tile{display:flex;align-items:center;gap:16px}
@@ -127,6 +146,13 @@
   .cap-one{flex:none;border:none;background:var(--brand-50);color:var(--brand);border-radius:8px;
     width:30px;height:30px;font-size:15px;cursor:pointer}
   .cap-one:hover{background:var(--brand);color:#fff}
+  .dthreat{color:var(--red)}
+  .abadge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;
+    letter-spacing:.03em;flex:none;white-space:nowrap}
+  .b-tamper{background:var(--red-bg);color:var(--red)}
+  .b-replay{background:#f59e0b1a;color:#B45309}
+  .b-arp{background:var(--brand-50);color:var(--brand)}
+  .b-info{background:var(--bg);color:var(--gray-700)}
 
   .overlay{position:fixed;inset:0;background:rgba(27,37,75,.45);display:none;
            align-items:center;justify-content:center;z-index:50;padding:20px}
@@ -145,104 +171,154 @@
 </style>
 </head>
 <body>
-  <div class="head">
-    <div>
-      <h1>Panel MITM</h1>
-      <p>Interceptación AMQP por ARP spoofing · laboratorio aislado</p>
-    </div>
-    <span class="brandchip">AMQP Lab</span>
-  </div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><span>🕷️</span><span>AMQP Lab</span></div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="inicio">
+          <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Inicio</button>
+        <button class="nav-item" data-view="trafico">
+          <svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Tráfico en vivo</button>
+        <button class="nav-item" data-view="replay">
+          <svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 01-4 4H3" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Replay</button>
+        <button class="nav-item" data-view="defensa">
+          <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg>
+          Defensa</button>
+      </nav>
+    </aside>
 
-  <div class="grid">
-    <div class="card">
-      <div class="tile">
-        <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg></div>
-        <div><div class="lbl">Estado</div><div class="val" id="v-estado">—</div></div>
+    <main class="main">
+      <div class="topbar">
+        <h1 id="view-title">Inicio</h1>
+        <p id="view-sub">Interceptación AMQP por ARP spoofing · laboratorio aislado</p>
       </div>
-    </div>
-    <div class="card">
-      <div class="tile">
-        <div class="chip"><svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <div><div class="lbl">Modo</div><div class="val" id="v-modo">—</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="tile">
-        <div class="chip"><svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
-        <div><div class="lbl">Mensajes vistos</div><div class="val" id="v-seen">0</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="tile">
-        <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
-        <div><div class="lbl">Modificados</div><div class="val" id="v-mod" style="color:var(--red)">0</div></div>
-      </div>
-    </div>
 
-    <div class="card span2">
-      <h2>Control del ataque</h2>
-      <div class="switchrow">
-        <div><div class="t">Man in the Middle</div><div class="s" id="switch-sub">Apagado · el tráfico va directo</div></div>
-        <label class="switch"><input type="checkbox" id="toggle"><span class="slider"></span></label>
-      </div>
-      <div class="label">Modo de operación</div>
-      <div class="seg">
-        <button id="mode-read" class="active">Leer</button>
-        <button id="mode-edit">Editar tráfico</button>
-      </div>
-      <div class="targets" id="targets"></div>
-    </div>
+      <!-- ====== INICIO ====== -->
+      <section class="view" id="view-inicio">
+        <div class="grid">
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg></div>
+              <div><div class="lbl">Estado</div><div class="val" id="v-estado">—</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+              <div><div class="lbl">Modo</div><div class="val" id="v-modo">—</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              <div><div class="lbl">Mensajes vistos</div><div class="val" id="v-seen">0</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              <div><div class="lbl">Modificados</div><div class="val" id="v-mod" style="color:var(--red)">0</div></div>
+            </div>
+          </div>
 
-    <div class="card span2">
-      <h2>Reglas de edición</h2>
-      <p class="desc">Cada regla busca un texto en el mensaje y lo reemplaza <b>en tránsito</b>.
-         El reemplazo se ajusta a la misma longitud (para no romper la conexión).</p>
-      <div id="rules"></div>
-      <div class="actions">
-        <button class="btn btn-ghost" id="add-rule">+ Añadir regla</button>
-        <button class="btn btn-brand" id="save-rules">Guardar reglas</button>
-        <span class="note" id="rules-note"></span>
-      </div>
-    </div>
+          <div class="card span2">
+            <h2>Control del ataque</h2>
+            <div class="switchrow">
+              <div><div class="t">Man in the Middle</div><div class="s" id="switch-sub">Apagado · el tráfico va directo</div></div>
+              <label class="switch"><input type="checkbox" id="toggle"><span class="slider"></span></label>
+            </div>
+            <div class="label">Modo de operación</div>
+            <div class="seg">
+              <button id="mode-read" class="active">Leer</button>
+              <button id="mode-edit">Editar tráfico</button>
+            </div>
+            <div class="targets" id="targets"></div>
+          </div>
 
-    <div class="card span4">
-      <h2>Replay attack</h2>
-      <p class="desc">El atacante <b>guarda</b> los mensajes que pasan por el MITM y los <b>reinyecta</b> a la cola.
-         Puedes reenviar <b>uno solo</b> (↻), varios <b>en secuencia</b> (ej. login → transferencia) o los <b>últimos N</b>.
-         El consumidor recibe duplicados sin poder distinguirlos (AMQP va en claro: el atacante también tendría las credenciales).</p>
-      <div class="replay-row">
-        <div class="rstat"><div class="rval" id="r-captured">0</div><div class="rlbl">capturados</div></div>
-        <div class="rstat"><div class="rval" id="r-replayed">0</div><div class="rlbl">reenviados</div></div>
-        <div class="replay-ctl">
-          <label class="rlbl" for="replay-n">últimos</label>
-          <input id="replay-n" type="number" min="1" value="10">
-          <button class="btn btn-ghost" id="replay-last">Reenviar</button>
+          <div class="card span2">
+            <h2>Reglas de edición</h2>
+            <p class="desc">Cada regla busca un texto en el mensaje y lo reemplaza <b>en tránsito</b>.
+               El reemplazo se ajusta a la misma longitud (para no romper la conexión).</p>
+            <div id="rules"></div>
+            <div class="actions">
+              <button class="btn btn-ghost" id="add-rule">+ Añadir regla</button>
+              <button class="btn btn-brand" id="save-rules">Guardar reglas</button>
+              <span class="note" id="rules-note"></span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="cap-head">
-        <span class="label">Mensajes capturados — elige y reenvía en orden</span>
-        <div class="cap-actions">
-          <button class="btn btn-ghost" id="cap-selall">Seleccionar todo</button>
-          <button class="btn btn-brand" id="replay-sel">Replay selección</button>
-        </div>
-      </div>
-      <div class="cap-list" id="cap-list"><div class="empty">Prende el MITM para capturar mensajes…</div></div>
-    </div>
+      </section>
 
-    <div class="card span4">
-      <h2>Tráfico en vivo</h2>
-      <p class="desc">El productor simula una app que publica mensajes tipo <b>transacción</b> en la cola AMQP,
-         con campos <b>STATUS</b> (estado), <b>amount</b> (monto) y <b>note</b> (nota). Aquí ves qué se
-         <b>envía</b> y qué <b>recibe el consumidor</b> tras tu edición. Los campos en rojo son los que modificaste.</p>
-      <table>
-        <thead><tr><th style="width:80px">Hora</th><th>Enviado (productor)</th><th>Recibe el consumidor</th></tr></thead>
-        <tbody id="feed"><tr><td colspan="3" class="empty">Prende el MITM para empezar a ver tráfico…</td></tr></tbody>
-      </table>
-      <div class="feed-foot">
-        <div class="pager" id="pager"></div>
-        <button class="btn btn-ghost" id="see-all">Ver todo</button>
-      </div>
-    </div>
+      <!-- ====== TRÁFICO EN VIVO ====== -->
+      <section class="view" id="view-trafico" hidden>
+        <div class="grid">
+          <div class="card span4">
+            <h2>Tráfico en vivo</h2>
+            <p class="desc">El productor simula una app que publica mensajes tipo <b>transacción</b> en la cola AMQP,
+               con campos <b>STATUS</b> (estado), <b>amount</b> (monto) y <b>note</b> (nota). Aquí ves qué se
+               <b>envía</b> y qué <b>recibe el consumidor</b> tras tu edición. Los campos en rojo son los que modificaste.</p>
+            <table>
+              <thead><tr><th style="width:80px">Hora</th><th>Enviado (productor)</th><th>Recibe el consumidor</th></tr></thead>
+              <tbody id="feed"><tr><td colspan="3" class="empty">Prende el MITM para empezar a ver tráfico…</td></tr></tbody>
+            </table>
+            <div class="feed-foot">
+              <div class="pager" id="pager"></div>
+              <button class="btn btn-ghost" id="see-all">Ver todo</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== REPLAY ====== -->
+      <section class="view" id="view-replay" hidden>
+        <div class="grid">
+          <div class="card span4">
+            <h2>Replay attack</h2>
+            <p class="desc">El atacante <b>guarda</b> los mensajes que pasan por el MITM y los <b>reinyecta</b> a la cola.
+               Puedes reenviar <b>uno solo</b> (↻), varios <b>en secuencia</b> (ej. login → transferencia) o los <b>últimos N</b>.
+               El consumidor recibe duplicados sin poder distinguirlos (AMQP va en claro: el atacante también tendría las credenciales).</p>
+            <div class="replay-row">
+              <div class="rstat"><div class="rval" id="r-captured">0</div><div class="rlbl">capturados</div></div>
+              <div class="rstat"><div class="rval" id="r-replayed">0</div><div class="rlbl">reenviados</div></div>
+              <div class="replay-ctl">
+                <label class="rlbl" for="replay-n">últimos</label>
+                <input id="replay-n" type="number" min="1" value="10">
+                <button class="btn btn-ghost" id="replay-last">Reenviar</button>
+              </div>
+            </div>
+            <div class="cap-head">
+              <span class="label">Mensajes capturados — elige y reenvía en orden</span>
+              <div class="cap-actions">
+                <button class="btn btn-ghost" id="cap-selall">Seleccionar todo</button>
+                <button class="btn btn-brand" id="replay-sel">Replay selección</button>
+              </div>
+            </div>
+            <div class="cap-list" id="cap-list"><div class="empty">Prende el MITM para capturar mensajes…</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== DEFENSA ====== -->
+      <section class="view" id="view-defensa" hidden>
+        <div class="grid">
+          <div class="card span4">
+            <h2>Defensa · DPI</h2>
+            <p class="desc">Un detector <b>pasivo</b> (comparte el namespace del broker) inspecciona el tráfico y alerta
+               sobre los ataques: <b>manipulación</b> de payload, <b>replay</b> (duplicados) y <b>ARP spoofing</b>.
+               No modifica nada: solo observa y avisa.</p>
+            <div class="replay-row">
+              <div class="rstat"><div class="rval dthreat" id="d-tamper">0</div><div class="rlbl">manipulación</div></div>
+              <div class="rstat"><div class="rval dthreat" id="d-replay">0</div><div class="rlbl">replay</div></div>
+              <div class="rstat"><div class="rval dthreat" id="d-arp">0</div><div class="rlbl">ARP spoof</div></div>
+            </div>
+            <div class="cap-list" id="alerts" style="margin-top:16px"><div class="empty">Sin alertas todavía.</div></div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
   <div class="overlay" id="modal">
@@ -261,6 +337,24 @@ const $=id=>document.getElementById(id);
 let clientRules=[], rulesLoaded=false;
 
 function pill(t,c){return `<span class="pill ${c}"><span class="dot"></span>${t}</span>`;}
+
+// ---------- navegación (sidebar) ----------
+const VIEWS={
+  inicio:['Inicio','Interceptación AMQP por ARP spoofing · laboratorio aislado'],
+  trafico:['Tráfico en vivo','Mensajes que pasan entre el productor y el broker'],
+  replay:['Replay attack','Reinyecta mensajes capturados a la cola'],
+  defensa:['Defensa · DPI','Detección pasiva de los ataques'],
+};
+function setView(v){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>{s.hidden=(s.id!=='view-'+v);});
+  const [t,sub]=VIEWS[v]||['',''];
+  $('view-title').textContent=t; $('view-sub').textContent=sub;
+  window.scrollTo(0,0);
+}
+document.querySelector('.nav').addEventListener('click',e=>{
+  const b=e.target.closest('.nav-item'); if(b) setView(b.dataset.view);
+});
 
 // ---------- modal ----------
 function showModal(title,steps,note){
@@ -333,7 +427,7 @@ $('rules').addEventListener('input',e=>{
 $('rules').addEventListener('click',e=>{
   const d=e.target.dataset.del;if(d!==undefined){clientRules.splice(d,1);renderRules();}});
 $('save-rules').onclick=()=>post('/api/rules',{rules:clientRules}).then(s=>{
-  applyStatus(s,true);  // re-sincroniza mostrando el valor efectivo (ajustado a longitud)
+  applyStatus(s,true);
   const n=$('rules-note');n.textContent='✓ Reglas guardadas';setTimeout(()=>n.textContent='',2000);
 });
 
@@ -373,7 +467,7 @@ $('cap-selall').onclick=()=>{
   $('cap-selall').textContent=all?'Seleccionar todo':'Quitar selección';
 };
 $('replay-sel').onclick=()=>{
-  const ids=[...checkedIds].sort((a,b)=>a-b); // orden cronológico (como ocurrieron)
+  const ids=[...checkedIds].sort((a,b)=>a-b);
   if(!ids.length)return;
   post('/api/replay',{ids}).then(s=>applyStatus(s,false));
 };
@@ -409,7 +503,6 @@ function rowHtml(e){
   return `<tr><td class="time">${e.ts}</td><td>${sent}</td><td>${recv}</td></tr>`;
 }
 
-// Ventana de páginas: hasta 4 números, con … y extremos (ej. 1 2 … 7)
 function pageWindow(total,cur){
   if(total<=4) return Array.from({length:total},(_,i)=>i+1);
   const out=[1];
@@ -459,10 +552,27 @@ $('see-all').onclick=()=>{
   renderFeed();
 };
 
+// ---------- defensa (DPI) ----------
+const A_LABEL={tamper:'MANIPULACIÓN',replay:'REPLAY',arp:'ARP SPOOF',info:'INFO'};
+function renderAlerts(d){
+  $('d-tamper').textContent=d.counts.tamper;
+  $('d-replay').textContent=d.counts.replay;
+  $('d-arp').textContent=d.counts.arp;
+  const box=$('alerts');
+  if(!d.alerts.length){box.innerHTML='<div class="empty">Sin alertas todavía.</div>';return;}
+  box.innerHTML=d.alerts.map(a=>`
+    <div class="cap-item">
+      <span class="cap-id">${a.ts}</span>
+      <span class="abadge b-${a.type}">${A_LABEL[a.type]||'INFO'}</span>
+      <span class="cap-body">${a.message}</span>
+    </div>`).join('');
+}
+
 function refresh(){
   api('/api/status').then(s=>applyStatus(s,!rulesLoaded)).catch(()=>{});
   api('/api/events').then(e=>{allEvents=e;renderFeed();}).catch(()=>{});
   api('/api/captured').then(maybeRenderCaptured).catch(()=>{});
+  api('/api/defense').then(renderAlerts).catch(()=>{});
 }
 refresh();setInterval(refresh,1000);
 </script>
