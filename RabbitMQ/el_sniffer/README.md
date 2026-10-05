@@ -1,42 +1,52 @@
-# 🧃🐇 el_sniffer — MITM AMQP con Scapy (SOLO FINES EDUCATIVOS)
+# 🕷️ el_sniffer — MITM AMQP + panel de control (SOLO LABORATORIO)
 
-🚨 **Disclaimer:** entorno de laboratorio aislado. NO usar en redes ajenas.
+🚨 **Disclaimer:** entorno aislado, fines educativos. No usar en redes ajenas.
 
-Este contenedor es el **atacante**. Se mete en medio del tráfico AMQP entre el
-productor (`el_enviador`) y el broker (`rabbit`) usando **ARP spoofing**, y
-modifica el contenido de los mensajes en tránsito con **Scapy**.
+El atacante: se mete en medio del tráfico AMQP (`el_enviador` ⇄ `rabbit`) con
+**ARP spoofing** y puede **leer y modificar** los mensajes en tránsito. Todo se
+controla desde un **panel web** (estilo Horizon UI) o por su **API REST**.
 
-## Qué hace `mitm.py`
+## Componentes
 
-1. Resuelve IP/MAC del productor y del broker.
-2. Envenena sus cachés ARP (ARP spoofing) para situarse en medio.
-3. Intercepta los frames AMQP (puerto 5672) y reemplaza marcadores en el
-   payload **conservando la longitud** (así no rompe el framing TCP/AMQP):
-   - `STATUS=NORMAL` → `STATUS=HACKED`
-   - `note=legit` → `note=pwned`
-4. Reenvía el paquete modificado a su destino real.
-5. Al salir, **restaura** las tablas ARP de las víctimas.
+| Archivo | Rol |
+|---|---|
+| `engine.py` | Motor MITM: ARP spoof, relay L2, reglas, stats, eventos (en hilos). |
+| `app.py` | API Flask + sirve el panel. Punto de entrada del contenedor. |
+| `static/index.html` | Panel de control (vanilla JS, diseño Horizon). |
 
-## Modos (`MITM_MODE`)
+## Panel
 
-- **`relay`** (por defecto): reenvío L2 en user-space con Scapy. Portable, no
-  necesita módulos de kernel ni iptables. Funciona en WSL2 y Linux.
-- **`nfqueue`**: `iptables -j NFQUEUE` + NetfilterQueue (técnica inline canónica).
-  Requiere un kernel host con `nfnetlink_queue` (Kali/VM real, no siempre en WSL2).
+Con el stack arriba: **http://localhost:8080**
 
-## Configuración (vía variables de entorno, ver `.env`)
+Flujo pensado: arranca **apagado** → prendes el MITM en modo **Leer** (ves el
+tráfico sin tocarlo) → cambias a **Editar**, defines las reglas y desde ahí
+modifica automáticamente. (No se edita en vivo mensaje a mensaje: se
+pre-configura la regla, para no provocar timeouts en la conexión.)
 
-| Variable        | Default        | Descripción                          |
-|-----------------|----------------|--------------------------------------|
-| `MITM_TARGET_A` | `el_enviador`  | Víctima 1 (productor)                |
-| `MITM_TARGET_B` | `rabbit`       | Víctima 2 (broker)                   |
-| `MITM_MODE`     | `relay`        | `relay` o `nfqueue`                  |
-| `AMQP_PORT`     | `5672`         | Puerto AMQP a interceptar            |
-| `MITM_IFACE`    | `eth0`         | Interfaz de red del contenedor       |
+## API REST
+
+| Método | Ruta | Cuerpo | Qué hace |
+|---|---|---|---|
+| GET  | `/api/status` | — | Estado completo (on/off, modo, reglas, stats, víctimas). |
+| POST | `/api/attack` | `{"on": true}` | Prende/apaga el ARP spoofing. |
+| POST | `/api/mode`   | `{"mode": "read"\|"edit"}` | Cambia el modo. |
+| POST | `/api/rules`  | `{"rules": [{"match": "...", "replace": "..."}]}` | Define las sustituciones. |
+| GET  | `/api/events` | — | Últimos mensajes vistos/modificados (feed). |
+
+Las reglas son **de igual longitud**: el reemplazo se ajusta (trunca o rellena)
+al tamaño exacto del texto buscado, para no desincronizar el stream TCP/AMQP.
+
+## Variables de entorno (ver `.env`)
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `MITM_TARGET_A` | `el_enviador` | Víctima 1 (productor) |
+| `MITM_TARGET_B` | `rabbit` | Víctima 2 (broker) |
+| `AMQP_PORT` | `5672` | Puerto AMQP a interceptar |
+| `MITM_IFACE` | `eth0` | Interfaz de red del contenedor |
 
 ## Privilegios
 
-Necesita las capacidades `NET_ADMIN` y `NET_RAW` (definidas en
-`docker-compose.yml`). **No** usa `privileged: true` (mínimo privilegio).
+Capacidades `NET_ADMIN` + `NET_RAW` (no `privileged`). Mínimo privilegio.
 
-**SOLO LABORATORIO. SOLO PRUEBAS. NO A LAS ILEGALIDADES. 🫠🐇**
+**SOLO LABORATORIO. SOLO PRUEBAS. 🐇**

@@ -80,10 +80,11 @@ services:
     environment:
       MITM_TARGET_A: ${MITM_TARGET_A}
       MITM_TARGET_B: ${MITM_TARGET_B}
-      MITM_MODE: ${MITM_MODE}
       AMQP_PORT: ${AMQP_PORT}
+    ports:
+      - "8080:8080"   # panel de control -> http://localhost:8080
     cap_add:
-      - NET_ADMIN   # ARP/iptables/ip_forward
+      - NET_ADMIN   # manipular ARP
       - NET_RAW     # sockets raw (scapy)
     networks:
       - red_docker

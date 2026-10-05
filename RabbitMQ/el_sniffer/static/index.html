@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel MITM · AMQP Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#422AFB; --brand-600:#3311DB; --brand-50:#E9E3FF;
+    --navy:#1B254B; --gray-700:#707EAE; --gray-600:#A3AED0; --line:#E9EDF7;
+    --bg:#F4F7FE; --card:#FFFFFF;
+    --green:#01B574; --green-bg:#01b5741a;
+    --red:#EE5D50; --red-bg:#ee5d501a;
+    --shadow:0 18px 40px rgba(112,144,176,.12);
+    --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--navy);
+       padding:28px;max-width:1240px;margin:0 auto;-webkit-font-smoothing:antialiased}
+
+  /* header */
+  .head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+  .head h1{font-family:'Poppins',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em}
+  .head p{color:var(--gray-700);font-size:14px;margin-top:4px}
+  .brandchip{display:inline-flex;align-items:center;gap:8px;background:var(--brand-50);color:var(--brand);
+             font-weight:700;font-size:13px;padding:10px 16px;border-radius:999px}
+
+  /* pills */
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;
+        font-size:12px;font-weight:700;letter-spacing:.01em}
+  .pill-green{background:var(--green-bg);color:var(--green)}
+  .pill-gray{background:var(--bg);color:var(--gray-700)}
+  .pill-red{background:var(--red-bg);color:var(--red)}
+  .pill-brand{background:var(--brand-50);color:var(--brand)}
+  .dot{width:7px;height:7px;border-radius:999px;background:currentColor}
+
+  /* grid + cards */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
+  .card h2{font-family:'Poppins',sans-serif;font-size:17px;font-weight:600;margin-bottom:18px}
+  .span2{grid-column:span 2}.span4{grid-column:span 4}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.span2,.span4{grid-column:span 2}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}.span2,.span4{grid-column:span 1}}
+
+  /* stat tiles */
+  .tile{display:flex;align-items:center;gap:16px}
+  .chip{width:56px;height:56px;border-radius:999px;display:grid;place-items:center;flex:none;background:var(--bg)}
+  .chip svg{width:26px;height:26px;stroke:var(--brand);fill:none;stroke-width:2}
+  .tile .lbl{color:var(--gray-700);font-size:13px;font-weight:500}
+  .tile .val{font-family:'Poppins',sans-serif;font-size:22px;font-weight:700;margin-top:2px}
+
+  /* switch */
+  .switchrow{display:flex;align-items:center;justify-content:space-between;
+             background:var(--bg);border-radius:16px;padding:16px 18px;margin-bottom:18px}
+  .switchrow .t{font-weight:700;font-size:15px}
+  .switchrow .s{color:var(--gray-700);font-size:12px;margin-top:2px}
+  .switch{position:relative;width:58px;height:32px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#cbd5e0;border-radius:999px;transition:.25s;cursor:pointer}
+  .slider:before{content:"";position:absolute;height:24px;width:24px;left:4px;top:4px;background:#fff;
+                 border-radius:999px;transition:.25s;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+  .switch input:checked+.slider{background:var(--green)}
+  .switch input:checked+.slider:before{transform:translateX(26px)}
+
+  /* segmented */
+  .seg{display:flex;background:var(--bg);border-radius:14px;padding:5px;gap:4px}
+  .seg button{flex:1;border:none;background:transparent;color:var(--gray-700);font-family:inherit;
+              font-weight:700;font-size:14px;padding:10px;border-radius:10px;cursor:pointer;transition:.2s}
+  .seg button.active{background:#fff;color:var(--navy);box-shadow:0 4px 12px rgba(112,144,176,.18)}
+  .label{color:var(--gray-700);font-size:12px;font-weight:700;text-transform:uppercase;
+         letter-spacing:.04em;margin-bottom:8px}
+  .targets{color:var(--gray-700);font-size:12.5px;margin-top:16px;line-height:1.6}
+  .targets b{color:var(--navy);font-weight:700}
+
+  /* rules */
+  .rule{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .rule input{flex:1;background:var(--bg);border:1px solid transparent;border-radius:12px;padding:11px 14px;
+              font-family:'DM Sans',monospace;font-size:13px;color:var(--navy);transition:.2s}
+  .rule input:focus{outline:none;border-color:var(--brand);background:#fff}
+  .arrow{color:var(--gray-600);font-weight:700;flex:none}
+  .icon-btn{width:38px;height:38px;flex:none;border:none;border-radius:12px;background:var(--red-bg);
+            color:var(--red);font-size:16px;cursor:pointer;font-weight:700}
+  .actions{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .btn{border:none;font-family:inherit;font-weight:700;font-size:14px;border-radius:14px;
+       padding:11px 20px;cursor:pointer;transition:.2s}
+  .btn-brand{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(66,42,251,.25)}
+  .btn-brand:hover{background:var(--brand-600)}
+  .btn-ghost{background:var(--brand-50);color:var(--brand)}
+  .note{color:var(--green);font-size:12.5px;font-weight:700}
+
+  /* feed */
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;color:var(--gray-600);font-size:11px;font-weight:700;text-transform:uppercase;
+     letter-spacing:.04em;padding:0 10px 12px}
+  td{padding:12px 10px;border-top:1px solid var(--line);font-family:'DM Sans',monospace;
+     font-size:12.5px;color:var(--navy);vertical-align:middle;word-break:break-all}
+  td.time{color:var(--gray-700);white-space:nowrap}
+  .tag{display:inline-block;background:var(--red-bg);color:var(--red);font-weight:700;font-size:10px;
+       padding:2px 8px;border-radius:999px;margin-right:8px;vertical-align:middle;letter-spacing:.03em}
+  .mod-txt{color:var(--red);font-weight:700}
+  .empty{color:var(--gray-700);font-size:13.5px;text-align:center;padding:28px 0}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>Panel MITM</h1>
+      <p>Interceptación AMQP por ARP spoofing · laboratorio aislado</p>
+    </div>
+    <span class="brandchip">🕷️ AMQP Lab</span>
+  </div>
+
+  <div class="grid">
+    <!-- stat tiles -->
+    <div class="card">
+      <div class="tile">
+        <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg></div>
+        <div><div class="lbl">Estado</div><div class="val" id="v-estado">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tile">
+        <div class="chip"><svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div><div class="lbl">Modo</div><div class="val" id="v-modo">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tile">
+        <div class="chip"><svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+        <div><div class="lbl">Mensajes vistos</div><div class="val" id="v-seen">0</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tile">
+        <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+        <div><div class="lbl">Modificados</div><div class="val" id="v-mod" style="color:var(--red)">0</div></div>
+      </div>
+    </div>
+
+    <!-- control -->
+    <div class="card span2">
+      <h2>Control del ataque</h2>
+      <div class="switchrow">
+        <div><div class="t">Man in the Middle</div><div class="s" id="switch-sub">Apagado · el tráfico va directo</div></div>
+        <label class="switch"><input type="checkbox" id="toggle"><span class="slider"></span></label>
+      </div>
+      <div class="label">Modo de operación</div>
+      <div class="seg">
+        <button id="mode-read" class="active">👁 Leer</button>
+        <button id="mode-edit">✏️ Editar tráfico</button>
+      </div>
+      <div class="targets" id="targets"></div>
+    </div>
+
+    <!-- rules -->
+    <div class="card span2">
+      <h2>Reglas de edición</h2>
+      <div id="rules"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="add-rule">+ Añadir regla</button>
+        <button class="btn btn-brand" id="save-rules">Guardar reglas</button>
+        <span class="note" id="rules-note"></span>
+      </div>
+      <p class="targets">El reemplazo se ajusta a la <b>misma longitud</b> del texto buscado (para no romper la conexión TCP/AMQP).</p>
+    </div>
+
+    <!-- feed -->
+    <div class="card span4">
+      <h2>Tráfico en vivo</h2>
+      <table>
+        <thead><tr><th style="width:90px">Hora</th><th>Original</th><th>Modificado</th></tr></thead>
+        <tbody id="feed"><tr><td colspan="3" class="empty">Prende el MITM para empezar a ver tráfico…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const api=(p,o)=>fetch(p,o).then(r=>r.json());
+const H={'Content-Type':'application/json'};
+let state={attack_on:false,mode:'read',rules:[],stats:{seen:0,modified:0},targets:{}};
+
+function pill(txt,cls){return `<span class="pill ${cls}"><span class="dot"></span>${txt}</span>`;}
+
+function renderRules(){
+  const box=document.getElementById('rules');box.innerHTML='';
+  state.rules.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='rule';
+    d.innerHTML=`<input value="${r.match||''}" data-i="${i}" data-k="match" placeholder="buscar · ej: STATUS=NORMAL">
+      <span class="arrow">→</span>
+      <input value="${r.replace||''}" data-i="${i}" data-k="replace" placeholder="reemplazar por">
+      <button class="icon-btn" data-del="${i}">✕</button>`;
+    box.appendChild(d);
+  });
+}
+
+function applyStatus(s){
+  state=s;
+  const on=s.attack_on;
+  document.getElementById('toggle').checked=on;
+  document.getElementById('v-estado').innerHTML=on?pill('Encendido','pill-green'):pill('Apagado','pill-gray');
+  document.getElementById('switch-sub').textContent=on?'Encendido · interceptando tráfico':'Apagado · el tráfico va directo';
+  document.getElementById('v-modo').innerHTML=s.mode==='edit'?pill('Editar','pill-red'):pill('Leer','pill-brand');
+  document.getElementById('mode-read').classList.toggle('active',s.mode==='read');
+  document.getElementById('mode-edit').classList.toggle('active',s.mode==='edit');
+  document.getElementById('v-seen').textContent=s.stats.seen;
+  document.getElementById('v-mod').textContent=s.stats.modified;
+  if(s.targets&&s.targets.a) document.getElementById('targets').innerHTML=
+    `Víctimas del ARP spoof:<br><b>${s.targets.a}</b> &nbsp;⇄&nbsp; <b>${s.targets.b}</b>`;
+  renderRules();
+}
+
+const post=(url,body)=>api(url,{method:'POST',headers:H,body:JSON.stringify(body)}).then(applyStatus);
+document.getElementById('toggle').onclick=e=>post('/api/attack',{on:e.target.checked});
+document.getElementById('mode-read').onclick=()=>post('/api/mode',{mode:'read'});
+document.getElementById('mode-edit').onclick=()=>post('/api/mode',{mode:'edit'});
+document.getElementById('add-rule').onclick=()=>{state.rules.push({match:'',replace:''});renderRules();};
+document.getElementById('rules').addEventListener('input',e=>{
+  const i=e.target.dataset.i,k=e.target.dataset.k;if(i!==undefined)state.rules[i][k]=e.target.value;});
+document.getElementById('rules').addEventListener('click',e=>{
+  const d=e.target.dataset.del;if(d!==undefined){state.rules.splice(d,1);renderRules();}});
+document.getElementById('save-rules').onclick=()=>post('/api/rules',{rules:state.rules}).then(()=>{
+  const n=document.getElementById('rules-note');n.textContent='✓ Reglas guardadas';
+  setTimeout(()=>n.textContent='',2000);});
+
+function refresh(){
+  api('/api/status').then(applyStatus).catch(()=>{});
+  api('/api/events').then(evts=>{
+    const feed=document.getElementById('feed');
+    if(!evts.length)return;
+    feed.innerHTML=evts.map(e=>`<tr>
+      <td class="time">${e.ts}</td>
+      <td>${e.original||''}</td>
+      <td>${e.tampered?`<span class="tag">MODIFICADO</span><span class="mod-txt">${e.modified}</span>`:'<span style="color:var(--gray-600)">—</span>'}</td>
+    </tr>`).join('');
+  }).catch(()=>{});
+}
+setInterval(refresh,1000);refresh();
+</script>
+</body>
+</html>

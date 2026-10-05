@@ -1,21 +1,20 @@
 FROM python:3.11-slim
 
-# Herramientas de red + toolchain para compilar netfilterqueue.
+# Solo herramientas de red livianas para inspección (tcpdump, ip).
+# Ya NO compilamos netfilterqueue -> build mucho más rápido.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc \
-        libnetfilter-queue-dev \
-        iptables \
         iproute2 \
         tcpdump \
-        libpcap-dev \
-        iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY mitm.py .
+COPY engine.py app.py ./
+COPY static ./static
+
+EXPOSE 8080
 
 # Necesita root + cap NET_ADMIN/NET_RAW (ver docker-compose.yml).
-CMD ["python", "-u", "mitm.py"]
+CMD ["python", "-u", "app.py"]

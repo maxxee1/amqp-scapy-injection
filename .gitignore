@@ -15,3 +15,6 @@ venv/
 
 # Logs y temporales
 *.log
+
+# Template de referencia (solo guía de estilo del front, no es parte del proyecto)
+horizon-tailwind-react-ts-main/
