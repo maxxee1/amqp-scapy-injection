@@ -71,6 +71,13 @@ def api_events():
     return jsonify(engine.recent_events())
 
 
+@app.post("/api/replay")
+def api_replay():
+    count = int((request.get_json(silent=True) or {}).get("count", 10))
+    engine.replay(count)
+    return jsonify(engine.status())
+
+
 def _shutdown(*_):
     engine.stop_attack()  # restaura las tablas ARP al cerrar
     sys.exit(0)

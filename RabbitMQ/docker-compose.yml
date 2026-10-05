@@ -89,6 +89,10 @@ services:
       MITM_TARGET_A: ${MITM_TARGET_A}
       MITM_TARGET_B: ${MITM_TARGET_B}
       AMQP_PORT: ${AMQP_PORT}
+      AMQP_HOST: ${AMQP_HOST}
+      AMQP_QUEUE: ${AMQP_QUEUE}
+      AMQP_USER: ${RABBITMQ_USER}   # para el replay (atacante publica en la cola)
+      AMQP_PASS: ${RABBITMQ_PASS}
     ports:
       - "8080:8080"   # panel de control -> http://localhost:8080
     volumes:
