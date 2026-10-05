@@ -24,7 +24,18 @@
   /* layout + sidebar */
   .layout{display:flex;gap:20px;align-items:flex-start}
   .sidebar{width:236px;flex:none;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
-           padding:22px;position:sticky;top:28px}
+           padding:22px;position:sticky;top:28px;display:flex;flex-direction:column;
+           min-height:calc(100vh - 56px)}
+  .creator{margin-top:auto;padding-top:18px}
+  .creator-card{background:var(--bg);border-radius:16px;padding:16px;text-align:center}
+  .creator-avatar{width:44px;height:44px;border-radius:999px;background:var(--brand);color:#fff;
+    display:grid;place-items:center;font-family:'Poppins',sans-serif;font-weight:700;font-size:15px;margin:0 auto 10px}
+  .creator-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14px;color:var(--navy)}
+  .creator-sub{color:var(--gray-700);font-size:11px;margin-top:3px;line-height:1.4}
+  .creator-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:var(--brand);
+    color:#fff;text-decoration:none;font-weight:700;font-size:12px;padding:8px 16px;border-radius:10px}
+  .creator-btn:hover{background:var(--brand-600)}
+  .creator-btn svg{width:14px;height:14px;fill:currentColor}
   .brand{display:flex;align-items:center;gap:10px;font-family:'Poppins',sans-serif;font-weight:700;
          font-size:18px;color:var(--navy);margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--line)}
   .nav{display:flex;flex-direction:column;gap:6px}
@@ -34,16 +45,25 @@
   .nav-item svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
   .nav-item:hover{background:var(--bg);color:var(--navy)}
   .nav-item.active{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(66,42,251,.25)}
+  .lbl-short{display:none}
   .main{flex:1;min-width:0}
   .topbar{margin-bottom:22px}
   .topbar h1{font-family:'Poppins',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.02em}
   .topbar p{color:var(--gray-700);font-size:14px;margin-top:4px}
   .view[hidden]{display:none}
+  .terms{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:16px;
+         padding:16px 20px;color:var(--gray-700);font-size:12px;line-height:1.7}
+  .terms b{color:var(--navy)}
+  .terms .warn{color:var(--red);font-weight:700}
   @media(max-width:860px){
     .layout{flex-direction:column}
-    .sidebar{width:100%;position:static}
-    .nav{flex-direction:row;flex-wrap:wrap}
-    .nav-item{width:auto;flex:1 1 140px;justify-content:center}
+    .sidebar{width:100%;position:static;min-height:auto;padding:8px}
+    .brand{display:none}
+    .creator{display:none}
+    .nav{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px}
+    .nav-item{width:auto;flex:0 0 auto;padding:10px 16px}
+    .lbl-full{display:none}
+    .lbl-short{display:inline}
   }
 
   .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;
@@ -180,7 +200,7 @@
           Inicio</button>
         <button class="nav-item" data-view="trafico">
           <svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linejoin="round" stroke-linecap="round"/></svg>
-          Tráfico en vivo</button>
+          <span class="lbl-full">Tráfico en vivo</span><span class="lbl-short">Tráfico</span></button>
         <button class="nav-item" data-view="replay">
           <svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 01-4 4H3" stroke-linejoin="round" stroke-linecap="round"/></svg>
           Replay</button>
@@ -188,6 +208,17 @@
           <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg>
           Defensa</button>
       </nav>
+      <div class="creator">
+        <div class="creator-card">
+          <div class="creator-avatar">MS</div>
+          <div class="creator-name">Maximiliano Solorza</div>
+          <div class="creator-sub">Ciberseguridad e IA · Santiago, Chile</div>
+          <a class="creator-btn" href="https://github.com/maxxee1/amqp-scapy-injection" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-3.16 19.49c.5.09.68-.22.68-.48l-.01-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.94.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 015 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85l-.01 2.75c0 .27.18.58.69.48A10 10 0 0012 2z"/></svg>
+            Ver en GitHub
+          </a>
+        </div>
+      </div>
     </aside>
 
     <main class="main">
@@ -318,6 +349,12 @@
           </div>
         </div>
       </section>
+
+      <footer class="terms">
+        <b>Uso educativo · laboratorio aislado.</b> Proyecto de código abierto.
+        <span class="warn">Queda estrictamente prohibido su uso en redes, sistemas o equipos sin autorización.</span>
+        El autor no se hace responsable del mal uso de esta herramienta ni de modificaciones hechas al código.
+      </footer>
     </main>
   </div>
 
