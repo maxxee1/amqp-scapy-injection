@@ -1,0 +1,11 @@
+# Reglas propias para el laboratorio AMQP MITM (SOLO LABORATORIO).
+# Se cargan en exclusiva con: suricata -S local.rules
+# sid 1000000+ = rango para reglas locales.
+
+# --- Manipulación de payload (firma de contenido en el AMQP en claro) ---
+alert tcp any any -> any 5672 (msg:"AMQP MITM: payload manipulado (STATUS=HACKED)"; content:"STATUS=HACKED"; classtype:policy-violation; sid:1000001; rev:1;)
+alert tcp any any -> any 5672 (msg:"AMQP MITM: payload manipulado (note=pwned)"; content:"note=pwned"; classtype:policy-violation; sid:1000002; rev:1;)
+
+# --- Ráfaga de publicaciones = posible replay / flood ---
+# Si una misma fuente publica >20 mensajes (msg#) en 3s, alerta una vez.
+alert tcp any any -> any 5672 (msg:"AMQP: rafaga de publicaciones (posible replay/flood)"; content:"msg#"; detection_filter:track by_src, count 20, seconds 3; classtype:policy-violation; sid:1000003; rev:1;)

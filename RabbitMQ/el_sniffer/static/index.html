@@ -173,6 +173,7 @@
   .b-replay{background:#f59e0b1a;color:#B45309}
   .b-arp{background:var(--brand-50);color:var(--brand)}
   .b-info{background:var(--bg);color:var(--gray-700)}
+  .b-suricata{background:#378add1a;color:#185FA5}
 
   .overlay{position:fixed;inset:0;background:rgba(27,37,75,.45);display:none;
            align-items:center;justify-content:center;z-index:50;padding:20px}
@@ -336,14 +337,15 @@
       <section class="view" id="view-defensa" hidden>
         <div class="grid">
           <div class="card span4">
-            <h2>Defensa · DPI</h2>
-            <p class="desc">Un detector <b>pasivo</b> (comparte el namespace del broker) inspecciona el tráfico y alerta
-               sobre los ataques: <b>manipulación</b> de payload, <b>replay</b> (duplicados) y <b>ARP spoofing</b>.
-               No modifica nada: solo observa y avisa.</p>
+            <h2>Defensa · IDS</h2>
+            <p class="desc">Dos detectores vigilan el tráfico del broker (pasivos, sin modificar nada): un
+               <b>DPI propio</b> (manipulación, replay, ARP spoofing) y <b>Suricata</b>, un IDS de industria con
+               reglas de firma. Todas las alertas de ambos aparecen abajo.</p>
             <div class="replay-row">
               <div class="rstat"><div class="rval dthreat" id="d-tamper">0</div><div class="rlbl">manipulación</div></div>
               <div class="rstat"><div class="rval dthreat" id="d-replay">0</div><div class="rlbl">replay</div></div>
               <div class="rstat"><div class="rval dthreat" id="d-arp">0</div><div class="rlbl">ARP spoof</div></div>
+              <div class="rstat"><div class="rval" id="d-suricata" style="color:#185FA5">0</div><div class="rlbl">Suricata (IDS)</div></div>
             </div>
             <div class="cap-list" id="alerts" style="margin-top:16px"><div class="empty">Sin alertas todavía.</div></div>
           </div>
@@ -380,7 +382,7 @@ const VIEWS={
   inicio:['Inicio','Interceptación AMQP por ARP spoofing · laboratorio aislado'],
   trafico:['Tráfico en vivo','Mensajes que pasan entre el productor y el broker'],
   replay:['Replay attack','Reinyecta mensajes capturados a la cola'],
-  defensa:['Defensa · DPI','Detección pasiva de los ataques'],
+  defensa:['Defensa · IDS','DPI propio + Suricata vigilando el broker'],
 };
 function setView(v){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
@@ -590,11 +592,12 @@ $('see-all').onclick=()=>{
 };
 
 // ---------- defensa (DPI) ----------
-const A_LABEL={tamper:'MANIPULACIÓN',replay:'REPLAY',arp:'ARP SPOOF',info:'INFO'};
+const A_LABEL={tamper:'MANIPULACIÓN',replay:'REPLAY',arp:'ARP SPOOF',suricata:'SURICATA',info:'INFO'};
 function renderAlerts(d){
   $('d-tamper').textContent=d.counts.tamper;
   $('d-replay').textContent=d.counts.replay;
   $('d-arp').textContent=d.counts.arp;
+  if(d.counts.suricata!==undefined) $('d-suricata').textContent=d.counts.suricata;
   const box=$('alerts');
   if(!d.alerts.length){box.innerHTML='<div class="empty">Sin alertas todavía.</div>';return;}
   box.innerHTML=d.alerts.map(a=>`

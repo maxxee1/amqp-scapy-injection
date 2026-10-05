@@ -1,0 +1,3 @@
+# Los scripts de shell SIEMPRE con saltos de línea LF (corren en contenedores Linux).
+*.sh text eol=lf
+entrypoint.sh text eol=lf

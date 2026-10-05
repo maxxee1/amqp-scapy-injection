@@ -129,6 +129,27 @@ services:
       - NET_ADMIN
     restart: unless-stopped
 
+  # ---------------------------------------------------------------
+  #  Suricata: IDS de industria. Comparte el netns del broker,
+  #  aplica reglas de firma propias y reenvía sus alertas al panel.
+  # ---------------------------------------------------------------
+  suricata:
+    build: ./suricata
+    container_name: suricata
+    network_mode: "service:rabbit"   # comparte la red del broker
+    depends_on:
+      rabbit:
+        condition: service_healthy
+      el_sniffer:
+        condition: service_started
+    environment:
+      SURI_IFACE: eth0
+      DEFENSE_SINK: http://el_sniffer:8080/api/defense/alert
+    cap_add:
+      - NET_RAW     # captura AF_PACKET
+      - NET_ADMIN
+    restart: unless-stopped
+
 networks:
   red_docker:
     driver: bridge

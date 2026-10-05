@@ -68,7 +68,7 @@ class MITMEngine:
         self.captured = deque(maxlen=300)  # mensajes vistos en el cable (para el replay)
         self._cap_seq = 0
         self.alerts = deque(maxlen=100)     # alertas de la defensa (DPI)
-        self.alert_counts = {"tamper": 0, "replay": 0, "arp": 0}
+        self.alert_counts = {"tamper": 0, "replay": 0, "arp": 0, "suricata": 0}
 
         self.ip_a = self.mac_a = self.ip_b = self.mac_b = self.my_mac = None
         self._poison_stop = threading.Event()
