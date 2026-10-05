@@ -114,6 +114,19 @@
   .replay-ctl input{width:84px;background:var(--bg);border:1px solid transparent;border-radius:12px;
     padding:11px 14px;font-family:inherit;font-size:14px;color:var(--navy);text-align:center}
   .replay-ctl input:focus{outline:none;border-color:var(--brand);background:#fff}
+  .cap-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:20px 0 10px}
+  .cap-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .cap-list{max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:12px}
+  .cap-item{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .cap-item:last-child{border-bottom:none}
+  .cap-item:hover{background:var(--bg)}
+  .cap-item input{width:16px;height:16px;accent-color:var(--brand);flex:none}
+  .cap-id{color:var(--gray-600);font-family:monospace;font-size:11px;white-space:nowrap;flex:none}
+  .cap-body{font-family:monospace;font-size:12px;color:var(--navy);flex:1;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .cap-one{flex:none;border:none;background:var(--brand-50);color:var(--brand);border-radius:8px;
+    width:30px;height:30px;font-size:15px;cursor:pointer}
+  .cap-one:hover{background:var(--brand);color:#fff}
 
   .overlay{position:fixed;inset:0;background:rgba(27,37,75,.45);display:none;
            align-items:center;justify-content:center;z-index:50;padding:20px}
@@ -194,18 +207,26 @@
 
     <div class="card span4">
       <h2>Replay attack</h2>
-      <p class="desc">El atacante <b>guarda</b> los mensajes que pasan por el MITM y los <b>reinyecta</b> a la cola
-         abriendo su propia conexión AMQP. El consumidor recibe <b>duplicados</b> sin poder distinguirlos
-         (AMQP va en claro: el atacante también tendría las credenciales).</p>
+      <p class="desc">El atacante <b>guarda</b> los mensajes que pasan por el MITM y los <b>reinyecta</b> a la cola.
+         Puedes reenviar <b>uno solo</b> (↻), varios <b>en secuencia</b> (ej. login → transferencia) o los <b>últimos N</b>.
+         El consumidor recibe duplicados sin poder distinguirlos (AMQP va en claro: el atacante también tendría las credenciales).</p>
       <div class="replay-row">
         <div class="rstat"><div class="rval" id="r-captured">0</div><div class="rlbl">capturados</div></div>
         <div class="rstat"><div class="rval" id="r-replayed">0</div><div class="rlbl">reenviados</div></div>
         <div class="replay-ctl">
-          <label class="rlbl" for="replay-n">cuántos</label>
+          <label class="rlbl" for="replay-n">últimos</label>
           <input id="replay-n" type="number" min="1" value="10">
-          <button class="btn btn-brand" id="replay-btn">Reenviar a la cola</button>
+          <button class="btn btn-ghost" id="replay-last">Reenviar</button>
         </div>
       </div>
+      <div class="cap-head">
+        <span class="label">Mensajes capturados — elige y reenvía en orden</span>
+        <div class="cap-actions">
+          <button class="btn btn-ghost" id="cap-selall">Seleccionar todo</button>
+          <button class="btn btn-brand" id="replay-sel">Replay selección</button>
+        </div>
+      </div>
+      <div class="cap-list" id="cap-list"><div class="empty">Prende el MITM para capturar mensajes…</div></div>
     </div>
 
     <div class="card span4">
@@ -316,7 +337,47 @@ $('save-rules').onclick=()=>post('/api/rules',{rules:clientRules}).then(s=>{
   const n=$('rules-note');n.textContent='✓ Reglas guardadas';setTimeout(()=>n.textContent='',2000);
 });
 
-$('replay-btn').onclick=()=>{
+// ---------- replay ----------
+let checkedIds=new Set(), lastCapCount=-1;
+
+function renderCaptured(list){
+  const box=$('cap-list');
+  if(!list.length){box.innerHTML='<div class="empty">Prende el MITM para capturar mensajes…</div>';return;}
+  const top=box.scrollTop;
+  box.innerHTML=[...list].reverse().map(c=>`
+    <label class="cap-item">
+      <input type="checkbox" data-id="${c.id}"${checkedIds.has(c.id)?' checked':''}>
+      <span class="cap-id">#${c.id} · ${c.ts}</span>
+      <span class="cap-body">${c.body}</span>
+      <button class="cap-one" data-one="${c.id}" title="Replay solo este">↻</button>
+    </label>`).join('');
+  box.scrollTop=top;
+}
+function maybeRenderCaptured(list){
+  if(list.length!==lastCapCount){lastCapCount=list.length;renderCaptured(list);}
+}
+
+$('cap-list').addEventListener('change',e=>{
+  if(e.target.type==='checkbox'){const id=+e.target.dataset.id;
+    e.target.checked?checkedIds.add(id):checkedIds.delete(id);}
+});
+$('cap-list').addEventListener('click',e=>{
+  const one=e.target.dataset.one;
+  if(one!==undefined){e.preventDefault();post('/api/replay',{ids:[+one]}).then(s=>applyStatus(s,false));}
+});
+$('cap-selall').onclick=()=>{
+  const boxes=[...document.querySelectorAll('#cap-list input[type=checkbox]')];
+  if(!boxes.length)return;
+  const all=boxes.every(b=>b.checked);
+  boxes.forEach(b=>{b.checked=!all;const id=+b.dataset.id;all?checkedIds.delete(id):checkedIds.add(id);});
+  $('cap-selall').textContent=all?'Seleccionar todo':'Quitar selección';
+};
+$('replay-sel').onclick=()=>{
+  const ids=[...checkedIds].sort((a,b)=>a-b); // orden cronológico (como ocurrieron)
+  if(!ids.length)return;
+  post('/api/replay',{ids}).then(s=>applyStatus(s,false));
+};
+$('replay-last').onclick=()=>{
   const n=Math.max(1,parseInt($('replay-n').value)||10);
   post('/api/replay',{count:n}).then(s=>applyStatus(s,false));
 };
@@ -401,6 +462,7 @@ $('see-all').onclick=()=>{
 function refresh(){
   api('/api/status').then(s=>applyStatus(s,!rulesLoaded)).catch(()=>{});
   api('/api/events').then(e=>{allEvents=e;renderFeed();}).catch(()=>{});
+  api('/api/captured').then(maybeRenderCaptured).catch(()=>{});
 }
 refresh();setInterval(refresh,1000);
 </script>

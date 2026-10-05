@@ -65,7 +65,8 @@ class MITMEngine:
         ]
         self.stats = {"seen": 0, "modified": 0, "replayed": 0}
         self.events = deque(maxlen=300)
-        self.captured = deque(maxlen=300)  # cuerpos vistos en el cable, para el replay
+        self.captured = deque(maxlen=300)  # mensajes vistos en el cable (para el replay)
+        self._cap_seq = 0
 
         self.ip_a = self.mac_a = self.ip_b = self.mac_b = self.my_mac = None
         self._poison_stop = threading.Event()
@@ -180,9 +181,17 @@ class MITMEngine:
     # ------------------------------------------------------------------
     # Replay attack: reinyecta a la cola los mensajes capturados
     # ------------------------------------------------------------------
-    def replay(self, count):
+    def captured_list(self):
         with self.lock:
-            bodies = list(self.captured)[-count:] if count > 0 else []
+            return list(self.captured)
+
+    def replay(self, ids=None, count=10):
+        with self.lock:
+            if ids:
+                byid = {c["id"]: c["body"] for c in self.captured}
+                bodies = [byid[i] for i in ids if i in byid]  # respeta el orden pedido
+            else:
+                bodies = [c["body"] for c in list(self.captured)[-count:]] if count > 0 else []
         if bodies:
             threading.Thread(target=self._do_replay, args=(bodies,), daemon=True).start()
 
@@ -244,7 +253,10 @@ class MITMEngine:
                     if tampered:
                         self.stats["modified"] += 1
                     if transmitted:
-                        self.captured.append(transmitted)
+                        self._cap_seq += 1
+                        self.captured.append({"id": self._cap_seq,
+                                              "ts": time.strftime("%H:%M:%S"),
+                                              "body": transmitted})
                     self.events.appendleft({
                         "ts": time.strftime("%H:%M:%S"),
                         "original": msg,

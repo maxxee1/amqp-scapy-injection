@@ -71,10 +71,17 @@ def api_events():
     return jsonify(engine.recent_events())
 
 
+@app.get("/api/captured")
+def api_captured():
+    return jsonify(engine.captured_list())
+
+
 @app.post("/api/replay")
 def api_replay():
-    count = int((request.get_json(silent=True) or {}).get("count", 10))
-    engine.replay(count)
+    data = request.get_json(silent=True) or {}
+    ids = data.get("ids")
+    count = int(data.get("count", 10))
+    engine.replay(ids=ids, count=count)
     return jsonify(engine.status())
 
 
