@@ -21,40 +21,36 @@
   body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--navy);
        padding:28px;max-width:1240px;margin:0 auto;-webkit-font-smoothing:antialiased}
 
-  /* header */
   .head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:24px}
   .head h1{font-family:'Poppins',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em}
   .head p{color:var(--gray-700);font-size:14px;margin-top:4px}
   .brandchip{display:inline-flex;align-items:center;gap:8px;background:var(--brand-50);color:var(--brand);
              font-weight:700;font-size:13px;padding:10px 16px;border-radius:999px}
 
-  /* pills */
   .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;
-        font-size:12px;font-weight:700;letter-spacing:.01em}
+        font-size:12px;font-weight:700}
   .pill-green{background:var(--green-bg);color:var(--green)}
   .pill-gray{background:var(--bg);color:var(--gray-700)}
   .pill-red{background:var(--red-bg);color:var(--red)}
   .pill-brand{background:var(--brand-50);color:var(--brand)}
   .dot{width:7px;height:7px;border-radius:999px;background:currentColor}
 
-  /* grid + cards */
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
   .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
-  .card h2{font-family:'Poppins',sans-serif;font-size:17px;font-weight:600;margin-bottom:18px}
+  .card h2{font-family:'Poppins',sans-serif;font-size:17px;font-weight:600;margin-bottom:6px}
+  .card .desc{color:var(--gray-700);font-size:12.5px;margin-bottom:16px;line-height:1.5}
   .span2{grid-column:span 2}.span4{grid-column:span 4}
   @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.span2,.span4{grid-column:span 2}}
   @media(max-width:560px){.grid{grid-template-columns:1fr}.span2,.span4{grid-column:span 1}}
 
-  /* stat tiles */
   .tile{display:flex;align-items:center;gap:16px}
   .chip{width:56px;height:56px;border-radius:999px;display:grid;place-items:center;flex:none;background:var(--bg)}
   .chip svg{width:26px;height:26px;stroke:var(--brand);fill:none;stroke-width:2}
   .tile .lbl{color:var(--gray-700);font-size:13px;font-weight:500}
   .tile .val{font-family:'Poppins',sans-serif;font-size:22px;font-weight:700;margin-top:2px}
 
-  /* switch */
   .switchrow{display:flex;align-items:center;justify-content:space-between;
-             background:var(--bg);border-radius:16px;padding:16px 18px;margin-bottom:18px}
+             background:var(--bg);border-radius:16px;padding:16px 18px;margin:10px 0 18px}
   .switchrow .t{font-weight:700;font-size:15px}
   .switchrow .s{color:var(--gray-700);font-size:12px;margin-top:2px}
   .switch{position:relative;width:58px;height:32px;flex:none}
@@ -65,7 +61,6 @@
   .switch input:checked+.slider{background:var(--green)}
   .switch input:checked+.slider:before{transform:translateX(26px)}
 
-  /* segmented */
   .seg{display:flex;background:var(--bg);border-radius:14px;padding:5px;gap:4px}
   .seg button{flex:1;border:none;background:transparent;color:var(--gray-700);font-family:inherit;
               font-weight:700;font-size:14px;padding:10px;border-radius:10px;cursor:pointer;transition:.2s}
@@ -75,7 +70,6 @@
   .targets{color:var(--gray-700);font-size:12.5px;margin-top:16px;line-height:1.6}
   .targets b{color:var(--navy);font-weight:700}
 
-  /* rules */
   .rule{display:flex;gap:10px;align-items:center;margin-bottom:10px}
   .rule input{flex:1;background:var(--bg);border:1px solid transparent;border-radius:12px;padding:11px 14px;
               font-family:'DM Sans',monospace;font-size:13px;color:var(--navy);transition:.2s}
@@ -83,7 +77,7 @@
   .arrow{color:var(--gray-600);font-weight:700;flex:none}
   .icon-btn{width:38px;height:38px;flex:none;border:none;border-radius:12px;background:var(--red-bg);
             color:var(--red);font-size:16px;cursor:pointer;font-weight:700}
-  .actions{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .actions{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
   .btn{border:none;font-family:inherit;font-weight:700;font-size:14px;border-radius:14px;
        padding:11px 20px;cursor:pointer;transition:.2s}
   .btn-brand{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(66,42,251,.25)}
@@ -91,17 +85,33 @@
   .btn-ghost{background:var(--brand-50);color:var(--brand)}
   .note{color:var(--green);font-size:12.5px;font-weight:700}
 
-  /* feed */
   table{width:100%;border-collapse:collapse}
   th{text-align:left;color:var(--gray-600);font-size:11px;font-weight:700;text-transform:uppercase;
      letter-spacing:.04em;padding:0 10px 12px}
-  td{padding:12px 10px;border-top:1px solid var(--line);font-family:'DM Sans',monospace;
-     font-size:12.5px;color:var(--navy);vertical-align:middle;word-break:break-all}
-  td.time{color:var(--gray-700);white-space:nowrap}
-  .tag{display:inline-block;background:var(--red-bg);color:var(--red);font-weight:700;font-size:10px;
-       padding:2px 8px;border-radius:999px;margin-right:8px;vertical-align:middle;letter-spacing:.03em}
-  .mod-txt{color:var(--red);font-weight:700}
+  td{padding:12px 10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--navy);vertical-align:top}
+  td.time{color:var(--gray-700);white-space:nowrap;font-family:monospace}
+  .msgid{color:var(--gray-600);font-family:monospace;font-size:11px;margin-bottom:6px}
+  .fields{display:flex;flex-wrap:wrap;gap:6px}
+  .f{font-family:monospace;font-size:12px;background:var(--bg);color:var(--navy);
+     padding:4px 9px;border-radius:8px}
+  .f.changed{background:var(--red-bg);color:var(--red);font-weight:700}
+  .same{color:var(--gray-600);font-size:12px}
   .empty{color:var(--gray-700);font-size:13.5px;text-align:center;padding:28px 0}
+
+  .overlay{position:fixed;inset:0;background:rgba(27,37,75,.45);display:none;
+           align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+         padding:28px;max-width:460px;width:100%}
+  .modal h3{font-family:'Poppins',sans-serif;font-size:19px;font-weight:600;margin-bottom:16px}
+  .modal ul{list-style:none}
+  .modal li{position:relative;padding:8px 0 8px 26px;color:var(--navy);font-size:14px;line-height:1.5;
+            border-bottom:1px solid var(--line)}
+  .modal li:before{content:"";position:absolute;left:4px;top:14px;width:8px;height:8px;
+                   border-radius:999px;background:var(--brand)}
+  .modal-note{color:var(--gray-700);font-size:13px;margin-top:14px;line-height:1.5}
+  .modal-status{margin-top:18px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:8px}
+  .modal-status.working{color:var(--gray-700)}
+  .modal-status.done{color:var(--green)}
 </style>
 </head>
 <body>
@@ -110,11 +120,10 @@
       <h1>Panel MITM</h1>
       <p>Interceptación AMQP por ARP spoofing · laboratorio aislado</p>
     </div>
-    <span class="brandchip">🕷️ AMQP Lab</span>
+    <span class="brandchip">AMQP Lab</span>
   </div>
 
   <div class="grid">
-    <!-- stat tiles -->
     <div class="card">
       <div class="tile">
         <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg></div>
@@ -140,7 +149,6 @@
       </div>
     </div>
 
-    <!-- control -->
     <div class="card span2">
       <h2>Control del ataque</h2>
       <div class="switchrow">
@@ -149,44 +157,68 @@
       </div>
       <div class="label">Modo de operación</div>
       <div class="seg">
-        <button id="mode-read" class="active">👁 Leer</button>
-        <button id="mode-edit">✏️ Editar tráfico</button>
+        <button id="mode-read" class="active">Leer</button>
+        <button id="mode-edit">Editar tráfico</button>
       </div>
       <div class="targets" id="targets"></div>
     </div>
 
-    <!-- rules -->
     <div class="card span2">
       <h2>Reglas de edición</h2>
+      <p class="desc">Cada regla busca un texto en el mensaje y lo reemplaza <b>en tránsito</b>.
+         El reemplazo se ajusta a la misma longitud (para no romper la conexión).</p>
       <div id="rules"></div>
       <div class="actions">
         <button class="btn btn-ghost" id="add-rule">+ Añadir regla</button>
         <button class="btn btn-brand" id="save-rules">Guardar reglas</button>
         <span class="note" id="rules-note"></span>
       </div>
-      <p class="targets">El reemplazo se ajusta a la <b>misma longitud</b> del texto buscado (para no romper la conexión TCP/AMQP).</p>
     </div>
 
-    <!-- feed -->
     <div class="card span4">
       <h2>Tráfico en vivo</h2>
+      <p class="desc">El productor simula una app que publica mensajes tipo <b>transacción</b> en la cola AMQP,
+         con campos <b>STATUS</b> (estado), <b>amount</b> (monto) y <b>note</b> (nota). Aquí ves qué se
+         <b>envía</b> y qué <b>recibe el consumidor</b> tras tu edición. Los campos en rojo son los que modificaste.</p>
       <table>
-        <thead><tr><th style="width:90px">Hora</th><th>Original</th><th>Modificado</th></tr></thead>
+        <thead><tr><th style="width:80px">Hora</th><th>Enviado (productor)</th><th>Recibe el consumidor</th></tr></thead>
         <tbody id="feed"><tr><td colspan="3" class="empty">Prende el MITM para empezar a ver tráfico…</td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal">
+    <div class="modal">
+      <h3 id="modal-title"></h3>
+      <ul id="modal-steps"></ul>
+      <p class="modal-note" id="modal-note"></p>
+      <div class="modal-status working" id="modal-status"></div>
     </div>
   </div>
 
 <script>
 const api=(p,o)=>fetch(p,o).then(r=>r.json());
 const H={'Content-Type':'application/json'};
-let state={attack_on:false,mode:'read',rules:[],stats:{seen:0,modified:0},targets:{}};
+const $=id=>document.getElementById(id);
+let clientRules=[], rulesLoaded=false;
 
-function pill(txt,cls){return `<span class="pill ${cls}"><span class="dot"></span>${txt}</span>`;}
+function pill(t,c){return `<span class="pill ${c}"><span class="dot"></span>${t}</span>`;}
 
+// ---------- modal ----------
+function showModal(title,steps,note){
+  $('modal-title').textContent=title;
+  $('modal-steps').innerHTML=steps.map(s=>`<li>${s}</li>`).join('');
+  $('modal-note').textContent=note||'';
+  const st=$('modal-status');st.textContent='Procesando…';st.className='modal-status working';
+  $('modal').style.display='flex';
+}
+function modalDone(msg){const st=$('modal-status');st.textContent=msg;st.className='modal-status done';}
+function hideModal(){$('modal').style.display='none';}
+
+// ---------- rules ----------
 function renderRules(){
-  const box=document.getElementById('rules');box.innerHTML='';
-  state.rules.forEach((r,i)=>{
+  const box=$('rules');box.innerHTML='';
+  clientRules.forEach((r,i)=>{
     const d=document.createElement('div');d.className='rule';
     d.innerHTML=`<input value="${r.match||''}" data-i="${i}" data-k="match" placeholder="buscar · ej: STATUS=NORMAL">
       <span class="arrow">→</span>
@@ -196,48 +228,90 @@ function renderRules(){
   });
 }
 
-function applyStatus(s){
-  state=s;
+// ---------- status ----------
+function applyStatus(s,syncRules){
   const on=s.attack_on;
-  document.getElementById('toggle').checked=on;
-  document.getElementById('v-estado').innerHTML=on?pill('Encendido','pill-green'):pill('Apagado','pill-gray');
-  document.getElementById('switch-sub').textContent=on?'Encendido · interceptando tráfico':'Apagado · el tráfico va directo';
-  document.getElementById('v-modo').innerHTML=s.mode==='edit'?pill('Editar','pill-red'):pill('Leer','pill-brand');
-  document.getElementById('mode-read').classList.toggle('active',s.mode==='read');
-  document.getElementById('mode-edit').classList.toggle('active',s.mode==='edit');
-  document.getElementById('v-seen').textContent=s.stats.seen;
-  document.getElementById('v-mod').textContent=s.stats.modified;
-  if(s.targets&&s.targets.a) document.getElementById('targets').innerHTML=
+  $('toggle').checked=on;
+  $('v-estado').innerHTML=on?pill('Encendido','pill-green'):pill('Apagado','pill-gray');
+  $('switch-sub').textContent=on?'Encendido · interceptando tráfico':'Apagado · el tráfico va directo';
+  $('v-modo').innerHTML=s.mode==='edit'?pill('Editar','pill-red'):pill('Leer','pill-brand');
+  $('mode-read').classList.toggle('active',s.mode==='read');
+  $('mode-edit').classList.toggle('active',s.mode==='edit');
+  $('v-seen').textContent=s.stats.seen;
+  $('v-mod').textContent=s.stats.modified;
+  if(s.targets&&s.targets.a) $('targets').innerHTML=
     `Víctimas del ARP spoof:<br><b>${s.targets.a}</b> &nbsp;⇄&nbsp; <b>${s.targets.b}</b>`;
-  renderRules();
+  if(syncRules){ clientRules=(s.rules||[]).map(r=>({match:r.match,replace:r.replace})); renderRules(); rulesLoaded=true; }
 }
 
-const post=(url,body)=>api(url,{method:'POST',headers:H,body:JSON.stringify(body)}).then(applyStatus);
-document.getElementById('toggle').onclick=e=>post('/api/attack',{on:e.target.checked});
-document.getElementById('mode-read').onclick=()=>post('/api/mode',{mode:'read'});
-document.getElementById('mode-edit').onclick=()=>post('/api/mode',{mode:'edit'});
-document.getElementById('add-rule').onclick=()=>{state.rules.push({match:'',replace:''});renderRules();};
-document.getElementById('rules').addEventListener('input',e=>{
-  const i=e.target.dataset.i,k=e.target.dataset.k;if(i!==undefined)state.rules[i][k]=e.target.value;});
-document.getElementById('rules').addEventListener('click',e=>{
-  const d=e.target.dataset.del;if(d!==undefined){state.rules.splice(d,1);renderRules();}});
-document.getElementById('save-rules').onclick=()=>post('/api/rules',{rules:state.rules}).then(()=>{
-  const n=document.getElementById('rules-note');n.textContent='✓ Reglas guardadas';
-  setTimeout(()=>n.textContent='',2000);});
+const post=(url,body)=>api(url,{method:'POST',headers:H,body:JSON.stringify(body)});
+
+$('toggle').onclick=e=>{
+  const on=e.target.checked;
+  if(on) showModal('Activando Man in the Middle',
+    ['Iniciando la suplantación ARP (ARP spoofing).',
+     'Situándose entre el productor y el broker.',
+     'El tráfico AMQP comenzará a pasar por el interceptor.'],
+    'A partir de aquí puedes ver y editar los mensajes en tránsito.');
+  else showModal('Desactivando Man in the Middle',
+    ['Deteniendo la suplantación ARP.',
+     'Restaurando las tablas ARP de las víctimas a sus valores reales.',
+     'El tráfico vuelve a fluir directo entre el productor y el broker.'],
+    'El interceptor deja de ver y de modificar el tráfico.');
+  post('/api/attack',{on}).then(s=>{
+    applyStatus(s,false);
+    modalDone(on?'Interceptor activo.':'Tablas ARP restauradas. Tráfico directo.');
+    setTimeout(hideModal,1500);
+  }).catch(()=>{modalDone('Error de conexión.');setTimeout(hideModal,1500);});
+};
+
+$('mode-read').onclick=()=>post('/api/mode',{mode:'read'}).then(s=>applyStatus(s,false));
+$('mode-edit').onclick=()=>post('/api/mode',{mode:'edit'}).then(s=>applyStatus(s,false));
+$('add-rule').onclick=()=>{clientRules.push({match:'',replace:''});renderRules();};
+$('rules').addEventListener('input',e=>{
+  const i=e.target.dataset.i,k=e.target.dataset.k;if(i!==undefined)clientRules[i][k]=e.target.value;});
+$('rules').addEventListener('click',e=>{
+  const d=e.target.dataset.del;if(d!==undefined){clientRules.splice(d,1);renderRules();}});
+$('save-rules').onclick=()=>post('/api/rules',{rules:clientRules}).then(s=>{
+  applyStatus(s,true);  // re-sincroniza mostrando el valor efectivo (ajustado a longitud)
+  const n=$('rules-note');n.textContent='✓ Reglas guardadas';setTimeout(()=>n.textContent='',2000);
+});
+
+// ---------- feed ----------
+function parseMsg(s){
+  const parts=(s||'').split('|');
+  const fields={};
+  parts.slice(1).forEach(p=>{const i=p.indexOf('=');if(i>0)fields[p.slice(0,i)]=p.slice(i+1);});
+  return {id:parts[0]||'', fields};
+}
+function chips(fields,cmp){
+  return Object.entries(fields).map(([k,v])=>{
+    const changed=cmp&&cmp[k]!==undefined&&cmp[k]!==v;
+    return `<span class="f${changed?' changed':''}">${k}=${v}</span>`;
+  }).join('');
+}
+function renderFeed(evts){
+  const feed=$('feed');
+  if(!evts.length)return;
+  feed.innerHTML=evts.map(e=>{
+    const o=parseMsg(e.original);
+    const sent=`<div class="msgid">${o.id}</div><div class="fields">${chips(o.fields,null)}</div>`;
+    let recv;
+    if(e.tampered){
+      const m=parseMsg(e.modified);
+      recv=`<div class="msgid">${m.id}</div><div class="fields">${chips(m.fields,o.fields)}</div>`;
+    }else{
+      recv=`<span class="same">idéntico (sin edición)</span>`;
+    }
+    return `<tr><td class="time">${e.ts}</td><td>${sent}</td><td>${recv}</td></tr>`;
+  }).join('');
+}
 
 function refresh(){
-  api('/api/status').then(applyStatus).catch(()=>{});
-  api('/api/events').then(evts=>{
-    const feed=document.getElementById('feed');
-    if(!evts.length)return;
-    feed.innerHTML=evts.map(e=>`<tr>
-      <td class="time">${e.ts}</td>
-      <td>${e.original||''}</td>
-      <td>${e.tampered?`<span class="tag">MODIFICADO</span><span class="mod-txt">${e.modified}</span>`:'<span style="color:var(--gray-600)">—</span>'}</td>
-    </tr>`).join('');
-  }).catch(()=>{});
+  api('/api/status').then(s=>applyStatus(s,!rulesLoaded)).catch(()=>{});
+  api('/api/events').then(renderFeed).catch(()=>{});
 }
-setInterval(refresh,1000);refresh();
+refresh();setInterval(refresh,1000);
 </script>
 </body>
 </html>
