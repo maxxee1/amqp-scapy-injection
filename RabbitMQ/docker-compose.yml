@@ -44,7 +44,9 @@ services:
       AMQP_USER: ${RABBITMQ_USER}
       AMQP_PASS: ${RABBITMQ_PASS}
     networks:
-      - red_docker
+      red_docker:
+        aliases:
+          - el_enviador
     restart: unless-stopped
 
   # ---------------------------------------------------------------
@@ -63,7 +65,9 @@ services:
       AMQP_USER: ${RABBITMQ_USER}
       AMQP_PASS: ${RABBITMQ_PASS}
     networks:
-      - red_docker
+      red_docker:
+        aliases:
+          - el_espameado
     restart: unless-stopped
 
   # ---------------------------------------------------------------
@@ -77,6 +81,10 @@ services:
     depends_on:
       rabbit:
         condition: service_healthy
+      el_enviador:
+        condition: service_started
+      el_espameado:
+        condition: service_started
     environment:
       MITM_TARGET_A: ${MITM_TARGET_A}
       MITM_TARGET_B: ${MITM_TARGET_B}
