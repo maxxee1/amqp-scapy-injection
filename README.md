@@ -36,19 +36,39 @@ spoofing** real entre contenedores Docker — todo controlado desde un **panel w
 | `rabbit`       | `amqp`        | Broker RabbitMQ (+ consola de gestión)                      |
 | `el_enviador`  | `insaneador`  | Productor: publica mensajes en la cola                      |
 | `el_espameado` | `insaneado`   | Consumidor: recibe y **detecta la manipulación**            |
-| `el_sniffer`   | `sniffermitm` | Atacante MITM: ARP spoof + **panel de control** en `:8080`  |
+| `el_sniffer`   | `sniffermitm` | Atacante MITM: ARP spoof + replay + **panel de control** en `:8080` |
+| `el_defensor`  | `dpi`         | **DPI propio** (Scapy): detecta manipulación, replay y ARP spoof |
+| `suricata`     | `suricata`    | **IDS de industria** con reglas de firma propias            |
+
+> La defensa (`el_defensor` + `suricata`) **comparte el netns de `rabbit`** para
+> ver todo el tráfico de forma pasiva, y empuja sus alertas al panel.
 
 ---
 
-## 🚀 Cómo levantarlo
+## 🚀 Setup y cómo levantarlo
 
-Requisitos: **Docker** + plugin **`docker compose`** (Linux o WSL2).
-Si no tienes Docker, mira la guía de instalación al final.
+**Único requisito: Docker + el plugin `docker compose`** (Linux o WSL2). No hay
+que instalar nada más: RabbitMQ, Scapy, Suricata y el panel corren en
+contenedores. La primera vez se descargan las imágenes (la de Suricata pesa
+unos cientos de MB, puede tardar).
+
+Verifica que están:
+
+```bash
+docker --version && docker compose version
+```
+
+Si `docker compose` no existe, instala el plugin (sin sudo, en tu usuario):
+
+```bash
+mkdir -p ~/.docker/cli-plugins && curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" -o ~/.docker/cli-plugins/docker-compose && chmod +x ~/.docker/cli-plugins/docker-compose
+```
+
+(Si no tienes Docker, la guía de instalación está al final.) Luego:
 
 ```bash
 git clone https://github.com/maxxee1/amqp-scapy-injection
-cd amqp-scapy-injection/RabbitMQ      # ← OJO: casi todo vive dentro de RabbitMQ/
-
+cd amqp-scapy-injection/RabbitMQ      # ← casi todo vive dentro de RabbitMQ/
 cp .env.example .env                  # crea tus credenciales (y cámbialas)
 docker compose up --build
 ```
@@ -67,13 +87,18 @@ El flujo está pensado para aprender paso a paso:
 2. **Prendes el MITM** (modo **Leer**) → empiezas a ver el tráfico en vivo, sin tocarlo.
 3. **Cambias a Editar** → defines las reglas de reemplazo y, al activarlas, el
    tráfico se modifica automáticamente (el consumidor pasa a recibir el mensaje alterado).
-4. **Estadísticas** (vistos / modificados) + un espacio reservado para el **DPI/defensa** (Parte 2).
+El panel es un dashboard con **sidebar** y 4 módulos: **Inicio** (control + reglas
++ estadísticas), **Tráfico en vivo**, **Replay** y **Defensa**.
+
+- **Replay**: reenvía mensajes capturados a la cola — uno solo, en secuencia o los últimos N → el consumidor recibe duplicados.
+- **Defensa**: alertas en vivo de los dos detectores (DPI propio + Suricata).
 
 > No se edita "en vivo" mensaje a mensaje (eso cortaría la conexión por timeout):
 > se **pre-configura la regla** y a partir de ahí actúa sola.
 
 El panel habla con el motor por una **API REST** (`/api/attack`, `/api/mode`,
-`/api/rules`, `/api/events`, `/api/status`) — ver [`el_sniffer/README.md`](RabbitMQ/el_sniffer/README.md).
+`/api/rules`, `/api/events`, `/api/replay`, `/api/defense`, `/api/status`) —
+ver [`el_sniffer/README.md`](RabbitMQ/el_sniffer/README.md).
 
 El diseño del front se guió por el template **Horizon UI Tailwind** (solo como
 referencia de estilo; no forma parte del proyecto).
@@ -102,6 +127,21 @@ contenedor solo ve lo suyo, así que un sniffer pasivo **no vería nada**. El tr
 
 Se usa **relay L2 en user-space** (portable, funciona en WSL2 y Linux, solo
 necesita las capacidades `NET_ADMIN`/`NET_RAW`).
+
+---
+
+## 🛡️ La defensa (DPI + Suricata)
+
+Dos detectores **pasivos** observan todo el tráfico del broker (comparten su
+netns) y avisan al panel, sin modificar ni inyectar nada:
+
+- **`el_defensor` (DPI propio, Scapy):** detecta la **manipulación** de payload
+  (firma `STATUS=HACKED`/`note=pwned`), el **replay** (un mismo `msg#ID` publicado
+  dos veces) y el **ARP spoofing** (una IP que pasa a venir desde otra MAC).
+- **`suricata` (IDS de industria):** aplica reglas de firma propias
+  (`suricata/local.rules`) y reenvía sus alertas (desde `eve.json`) al panel.
+
+Todas las alertas de ambos se ven en vivo en el módulo **Defensa**.
 
 ---
 
@@ -134,31 +174,12 @@ necesita las capacidades `NET_ADMIN`/`NET_RAW`).
 
 ---
 
-## 🩺 Troubleshooting
+## 🗺️ Roadmap
 
-**`cp .env.example .env` dice "No such file or directory".**
-Estás en la raíz del repo; el archivo vive en `RabbitMQ/`. Haz `cd RabbitMQ` primero.
-
-**El `build` (apt-get del sniffer) se cuelga con timeouts, pero `curl` sí funciona.**
-Es un **desajuste de MTU** típico de WSL2 (o VPNs): el host usa MTU 1280 y Docker
-crea sus redes en 1500, con PMTUD roto → las descargas grandes mueren. Fija el MTU
-de Docker al del host:
-
-```bash
-echo '{ "mtu": 1280 }' | sudo tee /etc/docker/daemon.json
-sudo systemctl restart docker
-```
-
-(Comprueba tu MTU con `ip -o link show eth0 | grep -o 'mtu [0-9]*'`.)
-
----
-
-## 🗺️ Roadmap (Parte 2)
-
+- [x] **MITM** con ARP spoofing: leer y modificar tráfico AMQP.
+- [x] **Replay attack**: capturar y reinyectar publicaciones (uno / secuencia / últimos N).
+- [x] **Defensa — DPI propio + Suricata**: detectan manipulación, replay y ARP spoofing, integrado en el panel.
 - [ ] **Escalamiento horizontal** de consumidores (`docker compose up --scale`).
-- [ ] **Replay attack**: capturar y reinyectar publicaciones AMQP.
-- [ ] **Defensa — DPI / Suricata**: detectar el ARP spoofing, la manipulación y el
-      replay con reglas propias, integrado en el mismo panel.
 
 ---
 

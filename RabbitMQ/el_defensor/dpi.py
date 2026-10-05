@@ -13,6 +13,7 @@ sección 'Defensa'. No modifica ni inyecta nada: solo observa y avisa.
 """
 import json
 import os
+import threading
 import time
 import urllib.request
 
@@ -21,6 +22,7 @@ from scapy.all import ARP, Ether, IP, Raw, TCP, sniff
 IFACE = os.environ.get("DPI_IFACE", "eth0")
 AMQP_PORT = int(os.environ.get("AMQP_PORT", "5672"))
 SINK = os.environ.get("DEFENSE_SINK", "http://el_sniffer:8080/api/defense/alert")
+SURICATA_EVE = os.environ.get("SURICATA_EVE")  # eve.json de Suricata (volumen compartido)
 
 TAMPER_SIGS = [b"STATUS=HACKED", b"note=pwned"]
 
@@ -92,10 +94,33 @@ def on_pkt(p):
                 seen_ids.clear()
 
 
+def tail_suricata():
+    """Lee el eve.json de Suricata (volumen compartido) y reenvía sus alertas."""
+    while not os.path.exists(SURICATA_EVE):
+        time.sleep(1)
+    with open(SURICATA_EVE) as f:
+        f.seek(0, 2)  # al final del archivo
+        while True:
+            line = f.readline()
+            if not line:
+                time.sleep(0.5)
+                continue
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("event_type") == "alert":
+                sig = ev.get("alert", {}).get("signature", "alerta Suricata")
+                alert("suricata", sig)
+
+
 def main():
     print(f"[DPI] escuchando en {IFACE} (netns del broker), puerto {AMQP_PORT}",
           flush=True)
     alert("info", "DPI iniciado: monitoreando el broker")
+    if SURICATA_EVE:
+        threading.Thread(target=tail_suricata, daemon=True).start()
+        print(f"[DPI] reenviando alertas de Suricata desde {SURICATA_EVE}", flush=True)
     sniff(iface=IFACE, prn=on_pkt, store=0)
 
 

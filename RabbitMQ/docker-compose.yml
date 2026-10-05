@@ -124,6 +124,9 @@ services:
     environment:
       AMQP_PORT: ${AMQP_PORT}
       DEFENSE_SINK: http://el_sniffer:8080/api/defense/alert
+      SURICATA_EVE: /suricata-logs/eve.json   # lee las alertas de Suricata
+    volumes:
+      - suricata_logs:/suricata-logs:ro       # volumen compartido con suricata
     cap_add:
       - NET_RAW     # sniff pasivo (scapy)
       - NET_ADMIN
@@ -140,11 +143,10 @@ services:
     depends_on:
       rabbit:
         condition: service_healthy
-      el_sniffer:
-        condition: service_started
     environment:
       SURI_IFACE: eth0
-      DEFENSE_SINK: http://el_sniffer:8080/api/defense/alert
+    volumes:
+      - suricata_logs:/var/log/suricata   # el DPI lee eve.json de aquí
     cap_add:
       - NET_RAW     # captura AF_PACKET
       - NET_ADMIN
@@ -153,3 +155,6 @@ services:
 networks:
   red_docker:
     driver: bridge
+
+volumes:
+  suricata_logs:
