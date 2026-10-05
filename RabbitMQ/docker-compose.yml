@@ -93,8 +93,3 @@ services:
 networks:
   red_docker:
     driver: bridge
-    driver_opts:
-      # Igualar el MTU del host WSL (que está en 1280). Si Docker usa el
-      # default 1500 y el host 1280, las descargas grandes mueren por un
-      # "agujero negro de MTU" (PMTUD roto). Ver README / diagnóstico.
-      com.docker.network.driver.mtu: "1280"

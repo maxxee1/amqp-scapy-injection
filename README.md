@@ -1,163 +1,171 @@
 # AMQP Scapy Injection — Laboratorio de Ataque y Defensa 🕷️🐇
 
 Laboratorio **reproducible** para aprender a **interceptar, modificar e inyectar**
-tráfico **AMQP** (RabbitMQ) usando **Scapy**, mediante un ataque **MITM con ARP
-spoofing** real entre contenedores Docker.
+tráfico **AMQP** (RabbitMQ) mediante un ataque **Man-in-the-Middle con ARP
+spoofing** real entre contenedores Docker — todo controlado desde un **panel web**.
 
 > ⚠️ **SOLO USO EDUCATIVO / LABORATORIO AISLADO.**
-> Todo corre en una red Docker privada (`red_docker`). No lo uses nunca contra
-> redes o equipos ajenos. Es un entorno de práctica para entender cómo funcionan
-> estos ataques y cómo defenderse de ellos.
+> Corre en una red Docker privada. No lo uses nunca contra redes o equipos
+> ajenos. Es un entorno de práctica para entender estos ataques y cómo defenderse.
 
 ---
 
 ## 🧩 Arquitectura
 
 ```
-                 red_docker (bridge, L2 aislada)
-   ┌────────────┐      ARP spoof       ┌────────────┐
-   │ el_enviador│◄───────────────────►│   rabbit    │
-   │ (productor)│   tráfico AMQP 5672  │ (RabbitMQ)  │
-   └─────┬──────┘    (interceptado)    └──────┬──────┘
-         │                                    │
-         │        ┌───────────────────┐       │
-         └───────►│    el_sniffer     │◄──────┘
-                  │  MITM (Scapy)     │   se mete en medio,
-                  │  ARP spoof +      │   modifica el payload
-                  │  relay / nfqueue  │   y reenvía
-                  └───────────────────┘
-                              │
-                        ┌─────▼──────┐
-                        │el_espameado│  recibe el mensaje
-                        │(consumidor)│  YA MANIPULADO
-                        └────────────┘
+                      red_docker (bridge L2 aislada)
+   ┌────────────┐        ARP spoofing        ┌─────────────┐
+   │ el_enviador│◄──────────────────────────►│   rabbit    │
+   │ (productor)│      tráfico AMQP :5672     │  (RabbitMQ) │
+   └─────┬──────┘       (interceptado)        └──────┬──────┘
+         │                                           │
+         │            ┌────────────────────┐         │
+         └───────────►│     el_sniffer     │◄────────┘
+                      │  motor MITM (Scapy)│   se mete en medio,
+                      │  + API + panel web │   lee / modifica / reenvía
+                      └─────────┬──────────┘
+                                │ :8080 (panel)
+                      ┌─────────▼──────────┐       ┌────────────┐
+                      │   navegador / tú   │       │el_espameado│
+                      │  control del ataque│       │(consumidor)│
+                      └────────────────────┘       └────────────┘
 ```
 
-| Servicio       | Contenedor   | Rol                                                        |
-|----------------|--------------|------------------------------------------------------------|
-| `rabbit`       | `amqp`       | Broker RabbitMQ (UI en http://localhost:15672)             |
-| `el_enviador`  | `insaneador` | Productor: publica mensajes en la cola                     |
-| `el_espameado` | `insaneado`  | Consumidor: recibe y **detecta la manipulación**           |
-| `el_sniffer`   | `sniffermitm`| Atacante MITM: ARP spoof + intercepta/modifica frames AMQP |
+| Servicio       | Contenedor    | Rol                                                         |
+|----------------|---------------|-------------------------------------------------------------|
+| `rabbit`       | `amqp`        | Broker RabbitMQ (+ consola de gestión)                      |
+| `el_enviador`  | `insaneador`  | Productor: publica mensajes en la cola                      |
+| `el_espameado` | `insaneado`   | Consumidor: recibe y **detecta la manipulación**            |
+| `el_sniffer`   | `sniffermitm` | Atacante MITM: ARP spoof + **panel de control** en `:8080`  |
 
 ---
 
 ## 🚀 Cómo levantarlo
 
-Requisitos: **Docker** + **plugin `docker compose`** (en Linux o WSL2).
-Si no tienes Docker, al final de este README está la guía de instalación en Ubuntu.
+Requisitos: **Docker** + plugin **`docker compose`** (Linux o WSL2).
+Si no tienes Docker, mira la guía de instalación al final.
 
 ```bash
 git clone https://github.com/maxxee1/amqp-scapy-injection
-cd amqp-scapy-injection/RabbitMQ
+cd amqp-scapy-injection/RabbitMQ      # ← OJO: casi todo vive dentro de RabbitMQ/
 
-# 1) Crea tu archivo de secretos a partir de la plantilla y cambia la clave
-cp .env.example .env
-#   (edita .env y pon una contraseña distinta)
-
-# 2) Construye y levanta todo
+cp .env.example .env                  # crea tus credenciales (y cámbialas)
 docker compose up --build
 ```
 
-Para apagar:
-
-```bash
-docker compose down
-```
+Apagar: `docker compose down`
 
 ---
 
-## 👀 Qué vas a ver (el ataque en acción)
+## 🎛️ Panel de control del ataque
 
-El productor envía mensajes con campos de **ancho fijo**:
+Con el stack arriba, abre **http://localhost:8080**
 
-```
-el_enviador  | [>] Enviado:  msg#000007|STATUS=NORMAL|amount=00000100|note=legit
-```
+El flujo está pensado para aprender paso a paso:
 
-El MITM los intercepta y reemplaza marcadores **conservando la longitud**
-(para no romper el framing TCP/AMQP):
+1. **Apagado** → no se intercepta nada; el consumidor recibe los mensajes intactos.
+2. **Prendes el MITM** (modo **Leer**) → empiezas a ver el tráfico en vivo, sin tocarlo.
+3. **Cambias a Editar** → defines las reglas de reemplazo y, al activarlas, el
+   tráfico se modifica automáticamente (el consumidor pasa a recibir el mensaje alterado).
+4. **Estadísticas** (vistos / modificados) + un espacio reservado para el **DPI/defensa** (Parte 2).
 
-```
-el_sniffer   | 👀 ORIGINAL : b'...STATUS=NORMAL...note=legit'
-el_sniffer   | 💥 MODIFICADO: b'...STATUS=HACKED...note=pwned'
-```
+> No se edita "en vivo" mensaje a mensaje (eso cortaría la conexión por timeout):
+> se **pre-configura la regla** y a partir de ahí actúa sola.
 
-Y el consumidor recibe el mensaje **ya alterado** y lo marca como ataque:
+El panel habla con el motor por una **API REST** (`/api/attack`, `/api/mode`,
+`/api/rules`, `/api/events`, `/api/status`) — ver [`el_sniffer/README.md`](RabbitMQ/el_sniffer/README.md).
 
-```
-el_espameado | [!] ALERTA — mensaje manipulado: msg#000007|STATUS=HACKED|amount=00000100|note=pwned 🚨
-```
-
-Eso demuestra el impacto: un atacante en la ruta puede cambiar el contenido de
-los mensajes sin que el broker ni las aplicaciones lo noten por sí solos.
+El diseño del front se guió por el template **Horizon UI Tailwind** (solo como
+referencia de estilo; no forma parte del proyecto).
 
 ---
 
-## 🛠️ Cómo funciona el MITM (`el_sniffer/mitm.py`)
+## 🐰 Consola de RabbitMQ
 
-1. **Resuelve** las IPs/MACs del productor y del broker.
-2. **Envenena las cachés ARP** de ambos (ARP spoofing): cada víctima cree que la
-   MAC de la otra es la del atacante, así el tráfico pasa por en medio.
-3. **Intercepta** los frames AMQP (puerto 5672) y **reemplaza** los marcadores.
-4. **Reenvía** el paquete modificado a su destino real.
+**http://localhost:15672** — usuario y clave son los de tu `.env`
+(`RABBITMQ_USER` / `RABBITMQ_PASS`). Ahí ves las colas, tasas de mensajes,
+conexiones, etc.
 
-### Dos modos (`MITM_MODE` en `.env`)
+---
 
-| Modo      | Cómo intercepta                              | Requisitos                                   |
-|-----------|----------------------------------------------|----------------------------------------------|
-| `relay`   | Reenvío L2 en user-space con Scapy (default) | Solo caps `NET_ADMIN`/`NET_RAW`. **Portable** (WSL2 incluido) |
-| `nfqueue` | `iptables -j NFQUEUE` + NetfilterQueue       | Kernel host con `nfnetlink_queue` (Kali/VM real) |
+## 🛠️ Cómo funciona el MITM (teoría breve)
 
-> En **WSL2** el módulo `nfnetlink_queue` no siempre está disponible, por eso el
-> modo por defecto es `relay`. En una VM Linux/Kali real puedes usar `nfqueue`.
+En una red *bridge* de Docker el tráfico lo conmuta un **switch virtual**: cada
+contenedor solo ve lo suyo, así que un sniffer pasivo **no vería nada**. El truco:
+
+1. **ARP spoofing** — ARP no tiene autenticación, así que el atacante le dice al
+   productor "la IP del broker está en MI MAC" y viceversa. Ahora el tráfico pasa por él.
+2. **Relay** — reenvía cada paquete a su destino real (si no, se corta la conexión).
+3. **Modificación de igual longitud** — reemplaza bytes del payload por la
+   **misma cantidad de bytes** (ej. `STATUS=NORMAL` → `STATUS=HACKED`) para no
+   desincronizar el framing TCP/AMQP, y recalcula los checksums.
+
+Se usa **relay L2 en user-space** (portable, funciona en WSL2 y Linux, solo
+necesita las capacidades `NET_ADMIN`/`NET_RAW`).
 
 ---
 
 ## 🔐 Principios de seguridad aplicados
 
 - **Secretos fuera del código:** credenciales en `.env` (en `.gitignore`), nunca
-  hardcodeadas ni horneadas en las imágenes. Se versiona solo `.env.example`.
-- **Dependencias pinneadas** (`pika==1.3.2`, `scapy==2.5.0`, …) → builds reproducibles
-  y menos riesgo de cadena de suministro.
-- **Mínimo privilegio:** productor y consumidor corren como usuario sin root; el
-  atacante usa solo `NET_ADMIN`/`NET_RAW` en vez de `privileged: true`.
+  horneadas en las imágenes. Se versiona solo `.env.example`.
+- **Dependencias pinneadas** (`pika`, `scapy`, `Flask`) → builds reproducibles.
+- **Mínimo privilegio:** productor y consumidor sin root; el atacante usa solo
+  `NET_ADMIN`/`NET_RAW` en vez de `privileged`.
 - **Arranque ordenado:** `healthcheck` del broker + `depends_on: service_healthy`.
-- **Red aislada:** todo ocurre en un bridge privado; el ataque no sale de ahí.
+- **Red aislada:** el ataque no sale del bridge privado.
+
+---
+
+## 📦 Puertos y comandos
+
+| Puerto | Servicio |
+|---|---|
+| `8080`  | Panel de control del MITM |
+| `15672` | Consola de RabbitMQ |
+| `5672`  | AMQP (broker) |
+
+| Comando | Descripción |
+|---|---|
+| `docker compose up --build` | Construye y levanta todo |
+| `docker compose logs -f el_sniffer` | Ver el ataque en vivo en la terminal |
+| `docker compose down` | Detiene y elimina los contenedores |
+| `docker compose down -v --rmi all` | Limpia contenedores, volúmenes e imágenes |
+
+---
+
+## 🩺 Troubleshooting
+
+**`cp .env.example .env` dice "No such file or directory".**
+Estás en la raíz del repo; el archivo vive en `RabbitMQ/`. Haz `cd RabbitMQ` primero.
+
+**El `build` (apt-get del sniffer) se cuelga con timeouts, pero `curl` sí funciona.**
+Es un **desajuste de MTU** típico de WSL2 (o VPNs): el host usa MTU 1280 y Docker
+crea sus redes en 1500, con PMTUD roto → las descargas grandes mueren. Fija el MTU
+de Docker al del host:
+
+```bash
+echo '{ "mtu": 1280 }' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+(Comprueba tu MTU con `ip -o link show eth0 | grep -o 'mtu [0-9]*'`.)
 
 ---
 
 ## 🗺️ Roadmap (Parte 2)
 
 - [ ] **Escalamiento horizontal** de consumidores (`docker compose up --scale`).
-- [ ] **Replay attack**: capturar y reinyectar publicaciones AMQP (mensajes duplicados).
-- [ ] **Defensa — DPI / Suricata**: IDS/IPS que detecte el ARP spoofing, la
-      manipulación de payload y el replay, con reglas propias.
-
----
-
-## 📦 Comandos útiles
-
-| Comando | Descripción |
-|---|---|
-| `docker compose up --build` | Construye y levanta todo |
-| `docker compose logs -f el_sniffer` | Ver el ataque en vivo |
-| `docker compose down` | Detiene y elimina contenedores |
-| `docker compose down -v --rmi all` | Limpia contenedores, volúmenes e imágenes |
-| `docker ps` | Contenedores en ejecución |
+- [ ] **Replay attack**: capturar y reinyectar publicaciones AMQP.
+- [ ] **Defensa — DPI / Suricata**: detectar el ARP spoofing, la manipulación y el
+      replay con reglas propias, integrado en el mismo panel.
 
 ---
 
 <details>
-<summary>📥 Instalar Docker en Ubuntu (si no lo tienes)</summary>
+<summary>📥 Instalar Docker en Ubuntu/Debian (si no lo tienes)</summary>
 
 ```bash
-# Verificar
-docker --version
-
-# Eliminar versiones previas (opcional)
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
-
 # Clave GPG + repo oficial
 sudo apt-get update
 sudo apt-get install ca-certificates curl
