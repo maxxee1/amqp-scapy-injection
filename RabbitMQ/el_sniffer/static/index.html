@@ -174,6 +174,18 @@
   .b-arp{background:var(--brand-50);color:var(--brand)}
   .b-info{background:var(--bg);color:var(--gray-700)}
   .b-suricata{background:#378add1a;color:#185FA5}
+  .dstat{cursor:pointer;border-radius:12px;padding:8px 14px;transition:.15s;user-select:none}
+  .dstat:hover{background:var(--bg)}
+  .dstat.active{background:var(--brand-50);box-shadow:inset 0 0 0 2px var(--brand)}
+  .bars{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+  .bar-row{display:flex;align-items:center;gap:12px}
+  .bar-lbl{width:160px;flex:none;font-size:12.5px;color:var(--navy);font-weight:500}
+  .bar-track{flex:1;height:12px;background:var(--bg);border-radius:999px;overflow:hidden;min-width:60px}
+  .bar-fill{height:100%;border-radius:999px;transition:width .3s;min-width:2px}
+  .bar-val{width:42px;flex:none;text-align:right;font-family:'Poppins',sans-serif;font-weight:700;font-size:13px}
+  .sumline{font-size:13.5px;line-height:1.9;color:var(--gray-700)}
+  .sumline b{color:var(--navy)}
+  @media(max-width:560px){.bar-lbl{width:110px}}
 
   .overlay{position:fixed;inset:0;background:rgba(27,37,75,.45);display:none;
            align-items:center;justify-content:center;z-index:50;padding:20px}
@@ -208,6 +220,9 @@
         <button class="nav-item" data-view="defensa">
           <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg>
           Defensa</button>
+        <button class="nav-item" data-view="estadisticas">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l3-4 3 3 4-6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          <span class="lbl-full">Estadísticas</span><span class="lbl-short">Stats</span></button>
       </nav>
       <div class="creator">
         <div class="creator-card">
@@ -342,12 +357,60 @@
                <b>DPI propio</b> (manipulación, replay, ARP spoofing) y <b>Suricata</b>, un IDS de industria con
                reglas de firma. Todas las alertas de ambos aparecen abajo.</p>
             <div class="replay-row">
-              <div class="rstat"><div class="rval dthreat" id="d-tamper">0</div><div class="rlbl">manipulación</div></div>
-              <div class="rstat"><div class="rval dthreat" id="d-replay">0</div><div class="rlbl">replay</div></div>
-              <div class="rstat"><div class="rval dthreat" id="d-arp">0</div><div class="rlbl">ARP spoof</div></div>
-              <div class="rstat"><div class="rval" id="d-suricata" style="color:#185FA5">0</div><div class="rlbl">Suricata (IDS)</div></div>
+              <div class="rstat dstat" data-filter="tamper"><div class="rval dthreat" id="d-tamper">0</div><div class="rlbl">manipulación</div></div>
+              <div class="rstat dstat" data-filter="replay"><div class="rval dthreat" id="d-replay">0</div><div class="rlbl">replay</div></div>
+              <div class="rstat dstat" data-filter="arp"><div class="rval dthreat" id="d-arp">0</div><div class="rlbl">ARP spoof</div></div>
+              <div class="rstat dstat" data-filter="suricata"><div class="rval" id="d-suricata" style="color:#185FA5">0</div><div class="rlbl">Suricata (IDS)</div></div>
             </div>
-            <div class="cap-list" id="alerts" style="margin-top:16px"><div class="empty">Sin alertas todavía.</div></div>
+            <p class="desc" style="margin:14px 0 0">Toca una categoría para ver solo esas alertas (DPI y Suricata se solapan: un mismo mensaje puede estar en ambos, no son mensajes únicos).</p>
+            <div class="cap-list" id="alerts" style="margin-top:10px"><div class="empty">Sin alertas todavía.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== ESTADÍSTICAS ====== -->
+      <section class="view" id="view-estadisticas" hidden>
+        <div class="grid">
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              <div><div class="lbl">Observados</div><div class="val" id="s-seen">0</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              <div><div class="lbl">Manipulados</div><div class="val" id="s-mod" style="color:var(--red)">0</div><div class="lbl" id="s-modpct"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 01-4 4H3" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+              <div><div class="lbl">Reinyectados</div><div class="val" id="s-rep">0</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tile">
+              <div class="chip"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke-linejoin="round"/></svg></div>
+              <div><div class="lbl">Detecciones totales</div><div class="val" id="s-total">0</div></div>
+            </div>
+          </div>
+
+          <div class="card span4">
+            <h2>Detecciones por fuente</h2>
+            <p class="desc">Son <b>detecciones</b>, no mensajes únicos: un mismo mensaje puede dispararse en varios detectores
+               (DPI y Suricata se <b>solapan</b>). El número real de mensajes alterados es <b>Manipulados</b> (arriba).</p>
+            <div class="bars">
+              <div class="bar-row"><span class="bar-lbl">DPI · manipulación</span><div class="bar-track"><div class="bar-fill" id="bar-tamper" style="background:var(--red)"></div></div><span class="bar-val" id="bv-tamper">0</span></div>
+              <div class="bar-row"><span class="bar-lbl">DPI · replay</span><div class="bar-track"><div class="bar-fill" id="bar-replay" style="background:#f59e0b"></div></div><span class="bar-val" id="bv-replay">0</span></div>
+              <div class="bar-row"><span class="bar-lbl">DPI · ARP spoof</span><div class="bar-track"><div class="bar-fill" id="bar-arp" style="background:var(--brand)"></div></div><span class="bar-val" id="bv-arp">0</span></div>
+              <div class="bar-row"><span class="bar-lbl">Suricata (IDS)</span><div class="bar-track"><div class="bar-fill" id="bar-suricata" style="background:#378add"></div></div><span class="bar-val" id="bv-suricata">0</span></div>
+            </div>
+          </div>
+
+          <div class="card span4">
+            <h2>Resumen de seguridad</h2>
+            <div class="sumline" id="s-summary">Levanta el MITM para empezar a generar actividad.</div>
           </div>
         </div>
       </section>
@@ -373,7 +436,7 @@
 const api=(p,o)=>fetch(p,o).then(r=>r.json());
 const H={'Content-Type':'application/json'};
 const $=id=>document.getElementById(id);
-let clientRules=[], rulesLoaded=false;
+let clientRules=[], rulesLoaded=false, lastStatus=null;
 
 function pill(t,c){return `<span class="pill ${c}"><span class="dot"></span>${t}</span>`;}
 
@@ -383,6 +446,7 @@ const VIEWS={
   trafico:['Tráfico en vivo','Mensajes que pasan entre el productor y el broker'],
   replay:['Replay attack','Reinyecta mensajes capturados a la cola'],
   defensa:['Defensa · IDS','DPI propio + Suricata vigilando el broker'],
+  estadisticas:['Estadísticas','Resumen tipo SIEM de la actividad'],
 };
 function setView(v){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
@@ -421,6 +485,7 @@ function renderRules(){
 
 // ---------- status ----------
 function applyStatus(s,syncRules){
+  lastStatus=s;
   const on=s.attack_on;
   $('toggle').checked=on;
   $('v-estado').innerHTML=on?pill('Encendido','pill-green'):pill('Apagado','pill-gray');
@@ -593,19 +658,50 @@ $('see-all').onclick=()=>{
 
 // ---------- defensa (DPI) ----------
 const A_LABEL={tamper:'MANIPULACIÓN',replay:'REPLAY',arp:'ARP SPOOF',suricata:'SURICATA',info:'INFO'};
+let alertFilter=null, lastDefense={counts:{},alerts:[]};
+
+document.querySelectorAll('.dstat').forEach(el=>el.onclick=()=>{
+  const f=el.dataset.filter;
+  alertFilter=(alertFilter===f)?null:f;
+  document.querySelectorAll('.dstat').forEach(x=>x.classList.toggle('active',x.dataset.filter===alertFilter));
+  renderAlerts(lastDefense);
+});
+
 function renderAlerts(d){
-  $('d-tamper').textContent=d.counts.tamper;
-  $('d-replay').textContent=d.counts.replay;
-  $('d-arp').textContent=d.counts.arp;
+  lastDefense=d;
+  $('d-tamper').textContent=d.counts.tamper||0;
+  $('d-replay').textContent=d.counts.replay||0;
+  $('d-arp').textContent=d.counts.arp||0;
   if(d.counts.suricata!==undefined) $('d-suricata').textContent=d.counts.suricata;
+  const list=alertFilter?d.alerts.filter(a=>a.type===alertFilter):d.alerts;
   const box=$('alerts');
-  if(!d.alerts.length){box.innerHTML='<div class="empty">Sin alertas todavía.</div>';return;}
-  box.innerHTML=d.alerts.map(a=>`
+  if(!list.length){box.innerHTML='<div class="empty">'+(alertFilter?'Sin alertas de esta categoría.':'Sin alertas todavía.')+'</div>';}
+  else box.innerHTML=list.map(a=>`
     <div class="cap-item">
       <span class="cap-id">${a.ts}</span>
       <span class="abadge b-${a.type}">${A_LABEL[a.type]||'INFO'}</span>
       <span class="cap-body">${a.message}</span>
     </div>`).join('');
+  renderStats(lastStatus,d);
+}
+
+function renderStats(st,def){
+  if(!st||!def)return;
+  const seen=st.stats.seen||0, mod=st.stats.modified||0, rep=st.stats.replayed||0, c=def.counts||{};
+  const tot=(c.tamper||0)+(c.replay||0)+(c.arp||0)+(c.suricata||0);
+  $('s-seen').textContent=seen;
+  $('s-mod').textContent=mod;
+  $('s-modpct').textContent=seen?('('+Math.round(mod/seen*100)+'% del total)'):'';
+  $('s-rep').textContent=rep;
+  $('s-total').textContent=tot;
+  const mx=Math.max(1,c.tamper||0,c.replay||0,c.arp||0,c.suricata||0);
+  const bar=(k,v)=>{$('bar-'+k).style.width=((v||0)/mx*100)+'%';$('bv-'+k).textContent=v||0;};
+  bar('tamper',c.tamper);bar('replay',c.replay);bar('arp',c.arp);bar('suricata',c.suricata);
+  $('s-summary').innerHTML=
+    `• <b>${mod}</b> mensajes manipulados de <b>${seen}</b> observados`+(seen?` (<b>${Math.round(mod/seen*100)}%</b>)`:'')+`.<br>`+
+    `• <b>${rep}</b> reinyecciones (replay / mensajes duplicados).<br>`+
+    `• Detectado por <b>DPI</b> — ${c.tamper||0} manipulación · ${c.replay||0} replay · ${c.arp||0} ARP spoof — y por <b>Suricata</b> — ${c.suricata||0}.<br>`+
+    `• Ataque <b>${st.attack_on?'ACTIVO':'inactivo'}</b> en modo <b>${st.mode==='edit'?'editar':'leer'}</b>.`;
 }
 
 function refresh(){
